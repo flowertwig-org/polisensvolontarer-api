@@ -29,6 +29,12 @@ namespace Api
         {
             // Add framework services.
             services.AddMvc();
+            // Add Session handling.
+            services.AddSession((SessionOptions options) => {
+                options.IdleTimeout = TimeSpan.FromSeconds(60);
+                options.CookieHttpOnly = true;
+                options.CookieName = "session";
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -37,6 +43,7 @@ namespace Api
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
+            app.UseSession();
             app.UseMvc();
         }
     }
