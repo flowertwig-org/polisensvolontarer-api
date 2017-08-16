@@ -36,7 +36,7 @@ namespace Api.Controllers
 
         // POST api/values
         [HttpPost]
-        public bool Post([FromBody]string username, [FromBody]string password)
+        public IActionResult Post([FromForm]string username, [FromForm]string password)
         {
             var cookieContainer = new CookieContainer();
             using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
@@ -55,7 +55,12 @@ namespace Api.Controllers
                     }
                 }
 
-                return info.Status;
+                if (info.Status)
+                {
+                     return this.Redirect("https://polisensvolontarer.azurewebsites.net/restricted/");
+                }else {
+                    return this.Redirect("https://polisensvolontarer.azurewebsites.net/login/?failed=true");
+                }
 
                 // TODO: 3. If no valid login, return false
                 // TODO: 4a. Add session info
