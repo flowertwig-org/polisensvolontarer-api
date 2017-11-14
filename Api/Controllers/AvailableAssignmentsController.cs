@@ -13,10 +13,28 @@ namespace Api.Controllers
         {
             // TODO: 1. Sanity checking
             // TODO: 2. Validate login
-            // TODO: 3. Return available assignmets
-            return new Assignment[] {
-                new Assignment{ }
-            };
+            var list = new List<Assignment>();
+            try
+            {
+                byte[] data;
+                if (HttpContext.Session.TryGetValue("AvailableAssignments", out data))
+                {
+                    var content = System.Text.Encoding.UTF8.GetString(data);
+                    var jArray = Newtonsoft.Json.JsonConvert.DeserializeObject(content) as Newtonsoft.Json.Linq.JArray;
+                    var array = jArray.ToObject<Assignment[]>();
+                    if (array != null)
+                    {
+                        list.AddRange(array);
+                    }
+                }
+            }
+			catch (System.Exception)
+			{
+                // TODO: Do error handling
+			}
+
+			// TODO: 3. Return available assignmets
+            return list.ToArray();
         }
 
         // GET api/values/5

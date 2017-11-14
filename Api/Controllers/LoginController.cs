@@ -51,13 +51,15 @@ namespace Api.Controllers
                 {
                     if (cookie.Name == "PHPSESSID")
                     {
-                        HttpContext.Session.Set("SessionCookie", System.Text.Encoding.UTF8.GetBytes(cookie.Value));
+                        HttpContext.Session.Set("Session-Cookie", System.Text.Encoding.UTF8.GetBytes(cookie.Value));
                     }
                 }
 
                 if (info.Status)
                 {
-                     return this.Redirect("https://polisensvolontarer.azurewebsites.net/restricted/");
+                    var availableAssignments = Newtonsoft.Json.JsonConvert.SerializeObject(info.AvailableAssignments.Assignments.ToArray());
+                    HttpContext.Session.Set("AvailableAssignments", System.Text.Encoding.UTF8.GetBytes(availableAssignments));
+                    return this.Redirect("https://polisensvolontarer.azurewebsites.net/restricted/");
                 }else {
                     return this.Redirect("https://polisensvolontarer.azurewebsites.net/login/?failed=true");
                 }
