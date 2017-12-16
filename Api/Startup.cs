@@ -27,17 +27,18 @@ namespace Api
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            // Add framework services.
-            services.AddMvc();
-
             // Add HTTP Cors support
             services.AddCors();
+
+            // Add framework services.
+            services.AddMvc();
 
             // Add Session handling.
             services.AddSession((SessionOptions options) =>
             {
                 options.IdleTimeout = TimeSpan.FromSeconds(60);
                 options.CookieHttpOnly = true;
+                options.CookieSecure = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
                 options.CookieName = "session";
             });
         }
@@ -48,7 +49,7 @@ namespace Api
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
-            app.UseCors(options => options.WithOrigins("https://polisensvolontarer.azurewebsites.net/").AllowAnyHeader().AllowAnyMethod().AllowCredentials());
+            app.UseCors(options => options.WithOrigins("https://polisensvolontarer.azurewebsites.net").AllowAnyHeader().AllowAnyMethod().AllowCredentials());
 			app.UseSession();
             app.UseMvc();
 
