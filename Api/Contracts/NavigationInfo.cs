@@ -1,7 +1,11 @@
-﻿namespace Api.Contracts
+﻿using System;
+
+namespace Api.Contracts
 {
     public class NavigationInfo
     {
+        private string content;
+
         public NavigationInfo()
         {
 
@@ -9,7 +13,37 @@
 
         public NavigationInfo(string pageContent)
         {
+            this.content = pageContent;
+            ParseContent(pageContent);
+        }
 
+        private string GetLink(string linkText) {
+            var regExp = "<a href=\"(?<link>[^\"]+)\"[^>]+>" + linkText + "<\\/a>";
+            var match = System.Text.RegularExpressions.Regex.Match(this.content, regExp);
+            var group = match.Groups["link"];
+            if (group.Success)
+            {
+                return group.Value.Replace("../", "");
+            }
+            return null;
+        }
+
+        private void ParseContent(string pageContent)
+        {
+            this.MyAssignmentsUrl = GetLink("Mina uppdrag");
+            this.MyAssignmentsReportTypesUrl = GetLink("Uppdragsrapport");
+            this.ContactFormUrl = GetLink("Kontakta oss");
+            this.AvailableAssignmentsUrl = GetLink("Aktuella uppdrag");
+            this.CoordinatorsUrl = GetLink("Samordnare");
+            this.CoordinatorsUrl = GetLink("Samordnare");
+
+            var regExp = "href=\"(?<logoutLink>[^\"]+logout=1)\"";
+            var match = System.Text.RegularExpressions.Regex.Match(this.content, regExp);
+            var group = match.Groups["logoutLink"];
+            if (group.Success)
+            {
+                this.LogoutUrl = group.Value.Replace("../", "");
+            }
         }
 
         public string AvailableAssignmentsUrl

@@ -59,6 +59,10 @@ namespace Api.Controllers
                 {
                     var availableAssignments = Newtonsoft.Json.JsonConvert.SerializeObject(info.AvailableAssignments.Assignments.ToArray());
                     HttpContext.Session.Set("AvailableAssignments", System.Text.Encoding.UTF8.GetBytes(availableAssignments));
+
+                    var mainNavigation = Newtonsoft.Json.JsonConvert.SerializeObject(info.MainNavigation);
+                    HttpContext.Session.Set("MainNavigation", System.Text.Encoding.UTF8.GetBytes(mainNavigation));
+
                     return this.Redirect("https://polisensvolontarer.azurewebsites.net/restricted/");
                 }else {
                     return this.Redirect("https://polisensvolontarer.azurewebsites.net/login/?failed=true");
