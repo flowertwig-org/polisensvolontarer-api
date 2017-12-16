@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using Api.Contracts;
+using System.Linq;
+using System;
 
 namespace Api.Controllers
 {
@@ -9,7 +11,7 @@ namespace Api.Controllers
     {
         // GET api/values
         [HttpGet]
-        public IEnumerable<Assignment> Get()
+        public IGrouping<string, Assignment>[] Get()
         {
             // TODO: 1. Sanity checking
             // TODO: 2. Validate login
@@ -33,8 +35,18 @@ namespace Api.Controllers
                 // TODO: Do error handling
 			}
 
-			// TODO: 3. Return available assignmets
-            return list.ToArray();
+            // TODO: 3. Return available assignmets
+            var groupedList = list.GroupBy(GroupByDay);
+            return groupedList.ToArray();
+        }
+
+        private string GroupByDay(Assignment assignment)
+        {
+            DateTime date;
+            if(DateTime.TryParse(assignment.Date, out date)) {
+                return date.ToString("yyyy-MM-dd");
+            }
+            return "";
         }
 
         // GET api/values/5
