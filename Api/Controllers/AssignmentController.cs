@@ -11,7 +11,7 @@ namespace Api.Controllers
     {
         // GET api/Assignment/{id}
         [HttpGet]
-        [ResponseCache(VaryByQueryKeys = new[] { "key" }, Duration = 60)]
+        //[ResponseCache(VaryByQueryKeys = new[] { "key" }, Duration = 60)]
         public AssignmentDetail Get(string key)
         {
             // TODO: 1. Sanity checking

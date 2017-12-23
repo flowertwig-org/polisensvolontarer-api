@@ -11,7 +11,7 @@ namespace Api.Controllers
     {
         // GET api/Assignments/{id}
         [HttpGet]
-        [ResponseCache(VaryByHeader = "Cookie", VaryByQueryKeys = new[] { "key" }, Duration = 60)]
+        //[ResponseCache(VaryByHeader = "Cookie", VaryByQueryKeys = new[] { "key" }, Duration = 60)]
         public IGrouping<string, Assignment>[] Get2(string key)
         {
             // TODO: 1. Sanity checking
