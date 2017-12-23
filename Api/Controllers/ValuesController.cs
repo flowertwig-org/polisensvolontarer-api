@@ -15,9 +15,9 @@ namespace Api.Controllers
 
         // GET api/values/5
         [HttpGet("{id}")]
-        public string Get(int id)
+        public string Get(string id)
         {
-            return "value";
+            return "value:" + id;
         }
 
         // POST api/values

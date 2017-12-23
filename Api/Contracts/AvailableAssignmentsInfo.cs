@@ -100,14 +100,14 @@ namespace Api.Contracts
                             }
                             index++;
                         }
-
+                        var linkData = System.Text.Encoding.UTF8.GetBytes(link);
                         Assignments.Add(new Assignment
                         {
+                            Id = System.Convert.ToBase64String(linkData).Replace("/", "_").Replace("=", "-"),
                             Name = name,
                             Area = place,
                             Category = assignmentType,
-                            Date = date,
-                            Link = link
+                            Date = date
                         });
                     }
                 }
