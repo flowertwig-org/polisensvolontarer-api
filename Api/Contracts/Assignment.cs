@@ -11,7 +11,7 @@
 
         public override string ToString()
         {
-            return string.Format("[Assignment: Name={0}, Date={1} Category={2}, Area={3}, Id={5}]", Name, Date, Category, Area, Id);
+            return string.Format("[Assignment: Name={0}, Date={1} Category={2}, Area={3}, Id={4}]", Name, Date, Category, Area, Id);
         }
     }
 }
