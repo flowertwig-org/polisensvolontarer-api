@@ -10,6 +10,8 @@ namespace Api.Controllers
         [HttpGet]
         public IEnumerable<string> Get()
         {
+            this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
+
             return new string[] { "value1", "value2" };
         }
 
@@ -17,6 +19,8 @@ namespace Api.Controllers
         [HttpGet("{id}")]
         public string Get(string id)
         {
+            this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
+
             return "value:" + id;
         }
 

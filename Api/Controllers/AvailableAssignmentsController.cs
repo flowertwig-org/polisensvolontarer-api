@@ -12,8 +12,10 @@ namespace Api.Controllers
         // GET api/Assignments/{id}
         [HttpGet]
         //[ResponseCache(VaryByHeader = "Cookie", VaryByQueryKeys = new[] { "key" }, Duration = 60)]
-        public IGrouping<string, Assignment>[] Get2(string key)
+        public IGrouping<string, Assignment>[] Get(string key)
         {
+            this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
+
             // TODO: 1. Sanity checking
             // TODO: 2. Validate login
             List<Assignment> list = AvailableAssignmentsHelper.GetAvailableAssignments(this.HttpContext);

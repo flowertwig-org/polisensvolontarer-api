@@ -12,6 +12,8 @@ namespace Api.Controllers
         [HttpGet]
         public bool Get()
         {
+            this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
+
             try
             {
                 byte[] data;
@@ -38,6 +40,8 @@ namespace Api.Controllers
         [HttpPost]
         public IActionResult Post([FromForm]string username, [FromForm]string password)
         {
+            this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
+
             var cookieContainer = new CookieContainer();
             using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
             {
