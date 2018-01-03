@@ -56,6 +56,8 @@ namespace Api.Controllers
                             Description = assignment.Description,
                             Time = assignment.Time,
                             ContactInfo = assignment.ContactInfo,
+                            MeetupTimeAndPlace = assignment.MeetupTimeAndPlace,
+                            GoogleCalendarEventUrl = assignment.GoogleCalendarEventUrl,
                             WantedNumberOfPeople = assignment.WantedNumberOfPeople,
                             CurrentNumberOfPeople = assignment.CurrentNumberOfPeople
                         });

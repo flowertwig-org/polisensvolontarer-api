@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using System.Net;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using Api.Contracts;
 
@@ -27,6 +28,8 @@ namespace Api.Helpers
                         string lastRequestDate = null;
                         string contactInfo = "";
                         string meetupTimeAndPlace = null;
+                        string meetupTime = null;
+                        string meetupPlace = null;
                         string currentNumberOfPeople = null;
                         string wantedNumberOfPeople = null;
                         string time = null;
@@ -53,19 +56,29 @@ namespace Api.Helpers
                                 .Replace("<strong>", "")
                                 .Replace("</strong>", "")
                                 .Replace("</font>", "")
-                                .Replace("</p>", "<br><br>");
+                                .Replace("</p>", "<br>")
+                                .Replace("<br>&nbsp;<br>", "<br>");
                             
                             if (value.IndexOf("Kategori:", System.StringComparison.Ordinal) != -1) {
                                 continue;
                             }
 
                             if (value.IndexOf("Uppdragsbeskrivning:", System.StringComparison.Ordinal) != -1) {
-                                description = value.Replace("Uppdragsbeskrivning:", "");
+                                description = value.Replace("Uppdragsbeskrivning:", "")
+                                                   .Replace("<p style=\"margin: 0cm 0cm 0.0001pt\">", "");
 
                                 while (description.IndexOf("<br>", System.StringComparison.Ordinal) == 0)
                                 {
                                     description = description.Substring(4);
                                 }
+                                continue;
+                            }
+
+                            if (value.IndexOf("Tid:", System.StringComparison.Ordinal) != -1)
+                            {
+                                // TODO: Fixa denna
+                                time = value.Replace("Tid:", "");
+                                time = time.Replace("<br>", "");
                                 continue;
                             }
 
@@ -93,8 +106,13 @@ namespace Api.Helpers
                             if (value.IndexOf("Tid och plats uts&auml;ttning:", System.StringComparison.Ordinal) != -1)
                             {
                                 // TODO: Fixa denna
-                                meetupTimeAndPlace = value; //.Replace("Tid och plats uts&auml;ttning:", "");
-                                //meetupTimeAndPlace = meetupTimeAndPlace.Replace("<br>", "");
+                                meetupTimeAndPlace = value.Replace("Tid och plats uts&auml;ttning:", "");
+                                meetupTimeAndPlace = meetupTimeAndPlace.Replace("<br>", "");
+                                var meetupPair = meetupTimeAndPlace.Split(new char[] {'|'});
+                                if (meetupPair.Length == 2) {
+                                    meetupTime = meetupPair[0];
+                                    meetupPlace = meetupPair[1];
+                                }
                                 continue;
                             }
 
@@ -125,16 +143,34 @@ namespace Api.Helpers
                                 wantedNumberOfPeople = wantedNumberOfPeople.Replace("<br>", "");
                                 continue;
                             }
-                            if (value.IndexOf("Tid:", System.StringComparison.Ordinal) != -1)
-                            {
-                                // TODO: Fixa denna
-                                time = value.Replace("Tid:", "");
-                                time = time.Replace("<br>", "");
-                                continue;
-                            }
 
                             name = value;
                         }
+
+                        var startTime = "";
+                        var endTime = "";
+
+                        var date = baseAssignment.Date.Replace("-", "");
+                        var startAndEndTime = time.Replace(":", "").Split(new char[] {'-',' '}, System.StringSplitOptions.RemoveEmptyEntries);
+                        if (startAndEndTime.Length == 2) {
+                            startTime = "T" + startAndEndTime[0];
+                            endTime = "T" + startAndEndTime[1];
+                        }
+
+                        var location = "";
+                        if (meetupPlace != null) {
+                            location = $"&location={WebUtility.UrlEncode(meetupPlace)}";
+                        }
+
+                        var details = "";
+                        if (description != null)
+                        {
+                            details = $"&details={WebUtility.UrlEncode(description)}";
+                        }
+
+                        var title = $"&text={WebUtility.UrlEncode(baseAssignment.Name)}";
+
+                        var googleCalendarEventUrl = $"https://www.google.com/calendar/render?action=TEMPLATE{title}&dates={date}{startTime}00/{date}{endTime}00{details}{location}&sf=true&output=xml";
 
                         return new AssignmentDetail
                         {
@@ -144,11 +180,11 @@ namespace Api.Helpers
                             MeetupTimeAndPlace = meetupTimeAndPlace,
                             CurrentNumberOfPeople = currentNumberOfPeople,
                             WantedNumberOfPeople = wantedNumberOfPeople,
-                            Time = time
+                            Time = time,
+                            GoogleCalendarEventUrl = googleCalendarEventUrl
                         };
                     }
                 }
-                return null;
             }
             catch (System.Exception ex)
             {
