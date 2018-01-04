@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using Api.Contracts;
@@ -85,6 +86,20 @@ namespace Api.Helpers
                             if (value.IndexOf("Samordnas av:", System.StringComparison.Ordinal) != -1) {
                                 // TODO: Fixa denna
                                 contactInfo += value.Replace("Samordnas av:", "<b>Samordnas av:</b>");
+
+                                var index = group.Index + group.Length;
+                                value = pageContent.Substring(index, 300)
+                                                                   .Replace("</div>", "")
+                                                                   .Replace("\t", "")
+                                                                   .Replace("</tr>", "")
+                                                                   .Replace("</td>", "")
+                                                                   .Replace("<tr>", "")
+                                                                   .Replace("\r\n", "")
+                                                                   .Replace("<td class=\"arial13bold Ofc401641\" valign=\"top\">", "")
+                                                                   .Replace("<td class=\"arial13bold O1621a455\" valign=\"top\">", "")
+                                                                   .Replace("<td class=\"NORMAL O5d0fe1aa\" valign=\"top\">", "")
+                                                   .Replace("/", "").Replace("<", "");
+                                contactInfo += value;
                                 continue;
                             }
 
@@ -100,6 +115,15 @@ namespace Api.Helpers
                                 // TODO: Fixa denna
                                 lastRequestDate = value.Replace("Sista anm&auml;lningsdag:", "");
                                 lastRequestDate = lastRequestDate.Replace("<br>", "");
+
+                                // 20181030
+                                if (lastRequestDate.Length == 8) {
+                                    var temp = lastRequestDate.Substring(0,4) + "-" + lastRequestDate.Substring(4, 2) + "-" + lastRequestDate.Substring(6,2);
+                                    DateTime test;
+                                    if (DateTime.TryParse(temp, out test)) {
+                                        lastRequestDate = temp;
+                                    }
+                                }
                                 continue;
                             }
 
@@ -110,8 +134,8 @@ namespace Api.Helpers
                                 meetupTimeAndPlace = meetupTimeAndPlace.Replace("<br>", "");
                                 var meetupPair = meetupTimeAndPlace.Split(new char[] {'|'});
                                 if (meetupPair.Length == 2) {
-                                    meetupTime = meetupPair[0];
-                                    meetupPlace = meetupPair[1];
+                                    meetupTime = meetupPair[0].Trim();
+                                    meetupPlace = meetupPair[1].Trim();
                                 }
                                 continue;
                             }
@@ -120,8 +144,6 @@ namespace Api.Helpers
                             {
                                 // TODO: Fixa denna
                                 var index = group.Index + group.Length;
-                                //currentNumberOfPeople = value; //.Replace("Tid och plats uts&auml;ttning:", "");
-                                //meetupTimeAndPlace = meetupTimeAndPlace.Replace("<br>", "");
                                 value = pageContent.Substring(index, 200)
                                                                    .Replace("</div>", "")
                                                                    .Replace("\t", "")
@@ -177,18 +199,20 @@ namespace Api.Helpers
                             Description = description,
                             Name = name,
                             ContactInfo = contactInfo,
-                            MeetupTimeAndPlace = meetupTimeAndPlace,
+                            MeetupTime = meetupTime,
+                            MeetupPlace = meetupPlace,
                             CurrentNumberOfPeople = currentNumberOfPeople,
                             WantedNumberOfPeople = wantedNumberOfPeople,
                             Time = time,
+                            LastRequestDate = lastRequestDate,
                             GoogleCalendarEventUrl = googleCalendarEventUrl
                         };
                     }
                 }
             }
-            catch (System.Exception ex)
+            catch (System.Exception)
             {
-                return new AssignmentDetail { Name = "ERROR", Description = ex.Message };
+                return new AssignmentDetail { Description = "Unknown Error" };
             }
         }
     }
