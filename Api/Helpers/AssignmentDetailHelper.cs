@@ -97,8 +97,11 @@ namespace Api.Helpers
                                                                    .Replace("\r\n", "")
                                                                    .Replace("<td class=\"arial13bold Ofc401641\" valign=\"top\">", "")
                                                                    .Replace("<td class=\"arial13bold O1621a455\" valign=\"top\">", "")
-                                                                   .Replace("<td class=\"NORMAL O5d0fe1aa\" valign=\"top\">", "")
-                                                   .Replace("/", "").Replace("<", "");
+                                                                   .Replace("<td class=\"NORMAL O5d0fe1aa\" valign=\"top\">", "");
+                                index = value.IndexOf('<');
+                                if (index > 0){
+                                    value = value.Substring(0, index);
+                                }
                                 contactInfo += value;
                                 continue;
                             }
@@ -173,7 +176,10 @@ namespace Api.Helpers
                         var endTime = "";
 
                         var date = baseAssignment.Date.Replace("-", "");
-                        var startAndEndTime = time.Replace(":", "").Split(new char[] {'-',' '}, System.StringSplitOptions.RemoveEmptyEntries);
+                        var startAndEndTime = time.Replace(":", "")
+                                                  .Replace(".", "")
+                                                  .Replace("Kl", "")
+                                                  .Split(new char[] {'-',' '}, System.StringSplitOptions.RemoveEmptyEntries);
                         if (startAndEndTime.Length == 2) {
                             startTime = "T" + startAndEndTime[0];
                             endTime = "T" + startAndEndTime[1];
@@ -184,11 +190,8 @@ namespace Api.Helpers
                             location = $"&location={WebUtility.UrlEncode(meetupPlace)}";
                         }
 
-                        var details = "";
-                        if (description != null)
-                        {
-                            details = $"&details={WebUtility.UrlEncode(description)}";
-                        }
+                        var url = "https://polisensvolontarer.azurewebsites.net/restricted/assignment/?key=" + baseAssignment.Id;
+                        var details = $"&details={WebUtility.UrlEncode(url)}";
 
                         var title = $"&text={WebUtility.UrlEncode(baseAssignment.Name)}";
 
@@ -210,9 +213,9 @@ namespace Api.Helpers
                     }
                 }
             }
-            catch (System.Exception)
+            catch (System.Exception ex)
             {
-                return new AssignmentDetail { Description = "Unknown Error" };
+                return new AssignmentDetail { Description = "Unknown Error: " + ex };
             }
         }
     }

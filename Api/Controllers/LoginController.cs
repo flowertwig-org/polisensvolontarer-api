@@ -38,7 +38,7 @@ namespace Api.Controllers
 
         // POST api/values
         [HttpPost]
-        public IActionResult Post([FromForm]string username, [FromForm]string password)
+        public IActionResult Post([FromForm]string username, [FromForm]string password, [FromForm]string page, [FromForm]string query)
         {
             this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
 
@@ -67,7 +67,19 @@ namespace Api.Controllers
                     var mainNavigation = Newtonsoft.Json.JsonConvert.SerializeObject(info.MainNavigation);
                     HttpContext.Session.Set("MainNavigation", System.Text.Encoding.UTF8.GetBytes(mainNavigation));
 
-                    return this.Redirect("https://polisensvolontarer.azurewebsites.net/restricted/");
+                    switch (page)
+                    {
+                        case "assignment":
+                            if (query != null && query.IndexOf('?') == 0) {
+                                return this.Redirect("https://polisensvolontarer.azurewebsites.net/restricted/assignment/" + query);
+                            }else {
+                                return this.Redirect("https://polisensvolontarer.azurewebsites.net/restricted/available-assignments/");
+                            }
+                        case "available-assignments":
+                            return this.Redirect("https://polisensvolontarer.azurewebsites.net/restricted/available-assignments/");
+                        default:
+                            return this.Redirect("https://polisensvolontarer.azurewebsites.net/restricted/");
+                    }
                 }else {
                     return this.Redirect("https://polisensvolontarer.azurewebsites.net/login/?failed=true");
                 }
