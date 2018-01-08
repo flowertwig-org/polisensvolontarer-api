@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -33,6 +30,9 @@ namespace Api
             // Add framework services.
             services.AddMvc();
 
+            var appSettings = Configuration.GetSection("AppSettings");
+            services.Configure<AppSettings>(appSettings);
+
             // Add Session handling.
             services.AddSession((SessionOptions options) =>
             {
@@ -49,7 +49,11 @@ namespace Api
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
-            app.UseCors(options => options.WithOrigins("https://polisensvolontarer.azurewebsites.net").AllowAnyHeader().AllowAnyMethod().AllowCredentials());
+            var settings = new AppSettings();
+            Configuration.GetSection("AppSettings").Bind(settings);
+
+            app.UseCors(options => options.WithOrigins(settings.WebSiteUrl).AllowAnyHeader().AllowAnyMethod().AllowCredentials());
+
 			app.UseSession();
             app.UseMvc();
 

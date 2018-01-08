@@ -3,12 +3,19 @@ using Microsoft.AspNetCore.Mvc;
 using Api.Contracts;
 using System.Linq;
 using Api.Helpers;
+using Microsoft.Extensions.Options;
 
 namespace Api.Controllers
 {
     [Route("api/[controller]")]
     public class AvailableAssignmentsController : Controller
     {
+        private AppSettings _appSettings;
+        public AvailableAssignmentsController(IOptions<AppSettings> appSettings)
+        {
+            _appSettings = appSettings.Value;
+        }
+
         // GET api/Assignments/{id}
         [HttpGet]
         //[ResponseCache(VaryByHeader = "Cookie", VaryByQueryKeys = new[] { "key" }, Duration = 60)]

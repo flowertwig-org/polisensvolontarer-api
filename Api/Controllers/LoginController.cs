@@ -2,12 +2,19 @@
 using System.Net.Http;
 using Api.Helpers;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace Api.Controllers
 {
     [Route("api/[controller]")]
     public class LoginController : Controller
     {
+        private AppSettings _appSettings;
+        public LoginController(IOptions<AppSettings> appSettings)
+        {
+            _appSettings = appSettings.Value;
+        }
+
         // GET api/values
         [HttpGet]
         public bool Get()
@@ -71,17 +78,17 @@ namespace Api.Controllers
                     {
                         case "assignment":
                             if (query != null && query.IndexOf('?') == 0) {
-                                return this.Redirect("https://polisensvolontarer.azurewebsites.net/restricted/assignment/" + query);
+                                return this.Redirect(_appSettings.WebSiteUrl + "/restricted/assignment/" + query);
                             }else {
-                                return this.Redirect("https://polisensvolontarer.azurewebsites.net/restricted/available-assignments/");
+                                return this.Redirect(_appSettings.WebSiteUrl + "/restricted/available-assignments/");
                             }
                         case "available-assignments":
-                            return this.Redirect("https://polisensvolontarer.azurewebsites.net/restricted/available-assignments/");
+                            return this.Redirect(_appSettings.WebSiteUrl + "/restricted/available-assignments/");
                         default:
-                            return this.Redirect("https://polisensvolontarer.azurewebsites.net/restricted/");
+                            return this.Redirect(_appSettings.WebSiteUrl + "/restricted/");
                     }
                 }else {
-                    return this.Redirect("https://polisensvolontarer.azurewebsites.net/login/?failed=true");
+                    return this.Redirect(_appSettings.WebSiteUrl + "/login/?failed=true");
                 }
 
                 // TODO: 3. If no valid login, return false

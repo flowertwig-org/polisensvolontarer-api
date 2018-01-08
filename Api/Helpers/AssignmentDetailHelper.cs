@@ -8,7 +8,7 @@ namespace Api.Helpers
 {
     public class AssignmentDetailHelper
     {
-        public static AssignmentDetail GetAssignmentDetailFromUrl(HttpClientHandler handler, Assignment baseAssignment)
+        public static AssignmentDetail GetAssignmentDetailFromUrl(HttpClientHandler handler, Assignment baseAssignment, string webSiteUrl)
         {
             try
             {
@@ -190,7 +190,7 @@ namespace Api.Helpers
                             location = $"&location={WebUtility.UrlEncode(meetupPlace)}";
                         }
 
-                        var url = "https://polisensvolontarer.azurewebsites.net/restricted/assignment/?key=" + baseAssignment.Id;
+                        var url = webSiteUrl + "/restricted/assignment/?key=" + baseAssignment.Id;
                         var details = $"&details={WebUtility.UrlEncode(url)}";
 
                         var title = $"&text={WebUtility.UrlEncode(baseAssignment.Name)}";
