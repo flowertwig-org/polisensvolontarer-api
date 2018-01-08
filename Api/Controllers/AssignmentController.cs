@@ -5,12 +5,19 @@ using System.Net.Http;
 using Api.Contracts;
 using Api.Helpers;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace Api.Controllers
 {
     [Route("api/[controller]")]
     public class AssignmentController : Controller
     {
+        private AppSettings _appSettings;
+        public AssignmentController(IOptions<AppSettings> appSettings)
+        {
+            _appSettings = appSettings.Value;
+        }
+
         // GET api/Assignment/{id}
         [HttpGet]
         //[ResponseCache(VaryByQueryKeys = new[] { "key" }, Duration = 60)]
@@ -39,7 +46,7 @@ namespace Api.Controllers
 
                     using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
                     {
-                        var assignment = AssignmentDetailHelper.GetAssignmentDetailFromUrl(handler, item);
+                        var assignment = AssignmentDetailHelper.GetAssignmentDetailFromUrl(handler, item, _appSettings.WebSiteUrl);
 
                         if (assignment == null)
                         {

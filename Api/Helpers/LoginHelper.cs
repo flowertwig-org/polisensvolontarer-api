@@ -1,16 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Net.Http;
 using Api.Contracts;
-using Microsoft.AspNetCore.Http;
 
 namespace Api.Helpers
 {
     public class LoginHelper
     {
-        public LoginHelper()
-        {
-        }
 
         public static bool IsLoginContent(string content) {
             if (string.IsNullOrEmpty(content)) {
