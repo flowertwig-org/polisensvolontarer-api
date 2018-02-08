@@ -70,6 +70,12 @@ namespace Api.Contracts
                                             link = columnContent.Substring(linkIndex, linkEndIndex - linkIndex);
                                             link = link.Replace("../../..", "");
 
+                                            // remove user specific info from link (so it can be shared with others)
+                                            var andSignIndex = link.IndexOf("&", System.StringComparison.Ordinal);
+                                            if (andSignIndex != -1) {
+                                                link = link.Substring(0, andSignIndex);
+                                            }
+
                                             linkEndIndex += 2;
                                             var nameIndex = columnContent.IndexOf("</a>", linkEndIndex, System.StringComparison.Ordinal);
                                             if (nameIndex != -1)
