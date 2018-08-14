@@ -68,7 +68,9 @@ namespace Api.Controllers
                             LastRequestDate = assignment.LastRequestDate,
                             GoogleCalendarEventUrl = assignment.GoogleCalendarEventUrl,
                             WantedNumberOfPeople = assignment.WantedNumberOfPeople,
-                            CurrentNumberOfPeople = assignment.CurrentNumberOfPeople
+                            CurrentNumberOfPeople = assignment.CurrentNumberOfPeople,
+                            InterestsFormUrl = assignment.InterestsFormUrl,
+                            InterestsValues = assignment.InterestsValues
                         });
                     }
                 }
