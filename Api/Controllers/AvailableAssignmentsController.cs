@@ -71,9 +71,9 @@ namespace Api.Controllers
                     }
 
 
-                    var result = AssignmentDetailHelper.SubmitInterestOfAssignment(handler, assignment, comment, password);
+                    AssignmentDetailHelper.SubmitInterestOfAssignment(handler, assignment, comment, password);
 
-                    return Content(result);
+                    return this.Ok();
                 }
             }
 

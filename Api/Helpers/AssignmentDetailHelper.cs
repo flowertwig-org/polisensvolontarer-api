@@ -266,7 +266,7 @@ namespace Api.Helpers
             }
         }
 
-        public static string SubmitInterestOfAssignment(HttpClientHandler handler, AssignmentDetail assignment, string comment, string password)
+        public static void SubmitInterestOfAssignment(HttpClientHandler handler, AssignmentDetail assignment, string comment, string password)
         {
             try
             {
@@ -288,15 +288,13 @@ namespace Api.Helpers
                     {
                         var pageContent = responseContent.ReadAsStringAsync().Result;
 
-
                         // TODO: Validate result
-                        return pageContent;
+                        //return pageContent;
                     }
                 }
             }
-            catch (System.Exception ex)
+            catch (System.Exception)
             {
-                return ex.ToString() + ", Inner?" + assignment.Id;
             }
         }
 
