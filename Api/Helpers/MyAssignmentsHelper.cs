@@ -41,16 +41,16 @@ namespace Api.Helpers
 
                         return new MyAssignmentsInfo
                         {
-                            Interests = interests.Assignments,
-                            Confirms = confirms.Assignments,
-                            Reservations = reservations.Assignments
+                            Interests = interests != null ? interests.Assignments : new List<Assignment>(),
+                            Confirms = confirms != null ? confirms.Assignments : new List<Assignment>(),
+                            Reservations = reservations != null ? reservations.Assignments : new List<Assignment>()
                         };
                     }
                 }
             }
-            catch (System.Exception ex)
+            catch (System.Exception)
             {
-                return new MyAssignmentsInfo { Reservations = new List<Assignment> { new AssignmentDetail { Description = "Unknown Error: " + ex } } };
+                return new MyAssignmentsInfo { };
             }
         }
     }
