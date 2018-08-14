@@ -1,4 +1,6 @@
-﻿namespace Api.Contracts
+﻿using System.Collections.Generic;
+
+namespace Api.Contracts
 {
     public class AssignmentDetail : Assignment
     {
@@ -24,6 +26,8 @@
         public string MeetupTime { get; set; }
         public string MeetupPlace { get; set; }
         public string LastRequestDate { get; set; }
+        public string InterestsFormUrl { get; set; }
+        public List<KeyValuePair<string, string>> InterestsValues { get; set; }
 
         public override string ToString()
         {

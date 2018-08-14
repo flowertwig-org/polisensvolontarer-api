@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Text.RegularExpressions;
@@ -23,6 +24,38 @@ namespace Api.Helpers
                     {
                         var pageContent = responseContent.ReadAsStringAsync().Result;
 
+                        // Get Interests values
+                        var interestsValueRefPage = GetFormFieldValue("ref_page", pageContent);
+                        var interestsValueSdFormCount = GetFormFieldValue("sd_formcount", pageContent);
+                        var interestsValueCmsId = GetFormFieldValue2("cms_id", pageContent);
+                        var interestsValueZero = GetFormFieldValue("0", pageContent);
+                        var interestsValueContId = GetFormFieldValue("cont_id", pageContent);
+
+                        // As long as this is session based (individual for every user), we can copy username
+                        var interestsValueLogin = GetFormFieldValue("login", pageContent);
+                        //var interestsValuePassword = "Replace value here";
+                        //var interestsValueComment = "Replace value here";
+
+                        var interestsValueSubmit = "Submit";
+
+                        var interestsValues = new List<KeyValuePair<string, string>>();
+                        // If we have no CMS ID, assignment is not bookable
+                        if (interestsValueCmsId != null && interestsValueLogin != null)
+                        {
+                            interestsValues = new List<KeyValuePair<string, string>> {
+                                new KeyValuePair<string, string>("ref_page", interestsValueRefPage),
+                                new KeyValuePair<string, string>("sd_formcount", interestsValueSdFormCount),
+                                new KeyValuePair<string, string>("cms_id", interestsValueCmsId),
+                                new KeyValuePair<string, string>("0", interestsValueZero),
+                                new KeyValuePair<string, string>("cont_id", interestsValueContId),
+                                new KeyValuePair<string, string>("login", interestsValueLogin),
+                                //new KeyValuePair<string, string>("password", interestsValuePassword),
+                                //new KeyValuePair<string, string>("comment", interestsValueComment),
+                                new KeyValuePair<string, string>("submit_349_0", interestsValueSubmit)
+                            };
+                        }
+
+
                         //return new AssignmentDetail { Name = "PageContent", Description = pageContent };
                         string description = null;
                         string name = null;
@@ -34,6 +67,16 @@ namespace Api.Helpers
                         string currentNumberOfPeople = null;
                         string wantedNumberOfPeople = null;
                         string time = null;
+                        string postFormUrl = null;
+
+                        string postFormPattern = "<form action=\"(?<formUrl>[^\"]+)\"";
+                        var postFormMatch = Regex.Match(pageContent, postFormPattern);
+                        if (postFormMatch.Success) {
+                            var postFormGroup = postFormMatch.Groups["formUrl"];
+                            if (postFormGroup.Success) {
+                                postFormUrl = postFormGroup.Value.Replace("../", "");
+                            }
+                        }
 
                         string pattern = "<div class\\=\\\"arial13bold\\\">(?<content>.+)<\\/div>";
                         var matches = Regex.Matches(pageContent, pattern);
@@ -199,6 +242,7 @@ namespace Api.Helpers
 
                         return new AssignmentDetail
                         {
+                            Id = baseAssignment.Id,
                             Description = description,
                             Name = name,
                             ContactInfo = contactInfo,
@@ -208,15 +252,92 @@ namespace Api.Helpers
                             WantedNumberOfPeople = wantedNumberOfPeople,
                             Time = time,
                             LastRequestDate = lastRequestDate,
-                            GoogleCalendarEventUrl = googleCalendarEventUrl
+                            GoogleCalendarEventUrl = googleCalendarEventUrl,
+                            InterestsFormUrl = postFormUrl,
+                            InterestsValues = interestsValues
                         };
+                    }
+                }
+            }
+            catch (System.Exception)
+            {
+                return null;
+                //return new AssignmentDetail { Description = "Unknown Error: " + ex };
+            }
+        }
+
+        public static string SubmitInterestOfAssignment(HttpClientHandler handler, AssignmentDetail assignment, string comment, string password)
+        {
+            try
+            {
+                var idData = System.Convert.FromBase64String(assignment.Id.Replace("_", "/").Replace("-", "="));
+                var detailUrl = System.Text.Encoding.UTF8.GetString(idData);
+
+                HttpClient client = new HttpClient(handler);
+
+                var httpContentValues = new List<KeyValuePair<string, string>>(assignment.InterestsValues);
+
+                httpContentValues.Add(new KeyValuePair<string, string>("password", password));
+                httpContentValues.Add(new KeyValuePair<string, string>("comment", comment));
+
+                var httpContent = new FormUrlEncodedContent(httpContentValues);
+
+                using (var response = client.PostAsync("http://volontar.polisen.se/" + assignment.InterestsFormUrl, httpContent).Result)
+                {
+                    using (var responseContent = response.Content)
+                    {
+                        var pageContent = responseContent.ReadAsStringAsync().Result;
+
+
+                        // TODO: Validate result
+                        return pageContent;
                     }
                 }
             }
             catch (System.Exception ex)
             {
-                return new AssignmentDetail { Description = "Unknown Error: " + ex };
+                return ex.ToString() + ", Inner?" + assignment.Id;
             }
+        }
+
+        private static string GetFormFieldValue(string key, string pageContent)
+        {
+            // name="[^"]+" value="([^"]+)"
+            string pattern = "name=\"" + key + "\"[ |\\n|\\r]+value=\"(?<content>[^\"]*)\"";
+            var match = Regex.Match(pageContent, pattern);
+            if (!match.Success)
+            {
+                return null;
+            }
+
+            var group = match.Groups["content"];
+            if (!group.Success)
+            {
+                return null;
+            }
+
+            var value = group.Value;
+            return value;
+        }
+
+        private static string GetFormFieldValue2(string key, string pageContent)
+        {
+            // name="[^"]+" value="([^"]+)"
+            string pattern = "id=\"" + key + "\" value=\"(?<content>[^\"]*)\"";
+            var match = Regex.Match(pageContent, pattern);
+            if (!match.Success)
+            {
+                return null;
+            }
+
+            var group = match.Groups["content"];
+            if (!group.Success)
+            {
+                return "2:" + group.Value;
+            }
+
+            var value = group.Value;
+            return value;
         }
     }
 }
