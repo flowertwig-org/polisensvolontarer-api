@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using Api.Contracts;
 
@@ -34,7 +35,32 @@ namespace Api.Helpers
 			}
 		}
 
-		public static LoginInfo Login(HttpClientHandler handler, string loginUrl, string username, string password)
+        public static bool IsPasswordOk(string password) {
+            try
+            {
+                var sha = System.Security.Cryptography.SHA1.Create();
+                var data = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+
+                var hash = string.Join("", data.Select(b => b.ToString("x2")).ToArray()).ToUpper();
+                var hashPrefix = hash.Substring(0, 5);
+
+                HttpClient httpClient = new HttpClient();
+                httpClient.Timeout = new System.TimeSpan(0, 0, 1);
+                var result = httpClient.GetStringAsync("https://api.pwnedpasswords.com/range/" + hashPrefix).Result;
+
+                if (!string.IsNullOrEmpty(result) && result.Contains(hash.Substring(5))) {
+                    return false;
+                }
+            }
+            catch (System.Exception)
+            {
+                // Ignore any possible error that might occure, this is a nice to have feature
+                return true;
+            }
+            return true;
+        }
+
+        public static LoginInfo Login(HttpClientHandler handler, string loginUrl, string username, string password)
 		{
 			HttpClient client = new HttpClient(handler);
             var httpContent = new FormUrlEncodedContent(new List<KeyValuePair<string, string>> {
