@@ -52,6 +52,13 @@ namespace Api.Controllers
             var cookieContainer = new CookieContainer();
             using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
             {
+                var passwordStatus = LoginHelper.IsPasswordOk(password);
+                var passwordStatusQuery = "";
+
+                if (!passwordStatus) {
+                    passwordStatusQuery = "?warning=1";
+                }
+
                 // TODO: 1. Sanity checking
                 // TODO: 2. Make login request
                 var loginUrl = LoginHelper.GetLoginUrl(handler);
@@ -78,14 +85,15 @@ namespace Api.Controllers
                     {
                         case "assignment":
                             if (query != null && query.IndexOf('?') == 0) {
-                                return this.Redirect(_appSettings.WebSiteUrl + "/restricted/assignment/" + query);
-                            }else {
-                                return this.Redirect(_appSettings.WebSiteUrl + "/restricted/available-assignments/");
+                                return this.Redirect(_appSettings.WebSiteUrl + "/restricted/assignment/" + query + passwordStatusQuery.Replace('?','&'));
+                            }
+                            else {
+                                return this.Redirect(_appSettings.WebSiteUrl + "/restricted/available-assignments/" + passwordStatusQuery);
                             }
                         case "available-assignments":
-                            return this.Redirect(_appSettings.WebSiteUrl + "/restricted/available-assignments/");
+                            return this.Redirect(_appSettings.WebSiteUrl + "/restricted/available-assignments/" + passwordStatusQuery);
                         default:
-                            return this.Redirect(_appSettings.WebSiteUrl + "/restricted/");
+                            return this.Redirect(_appSettings.WebSiteUrl + "/restricted/" + passwordStatusQuery);
                     }
                 }else {
                     return this.Redirect(_appSettings.WebSiteUrl + "/login/?failed=true");
