@@ -96,7 +96,7 @@ namespace Api.Controllers
                             return this.Redirect(_appSettings.WebSiteUrl + "/restricted/" + passwordStatusQuery);
                     }
                 }else {
-                    return this.Redirect(_appSettings.WebSiteUrl + "/login/?failed=true");
+                    return this.Redirect(_appSettings.WebSiteUrl + "/?warning=2");
                 }
 
                 // TODO: 3. If no valid login, return false
