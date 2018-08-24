@@ -1,19 +1,16 @@
 ﻿using System;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace Api.Controllers
 {
     [Route("api/[controller]")]
     public class LogoutController : Controller
     {
-        // TODO: We should change this to only use POST
-        [HttpGet]
-        public IActionResult Get()
+        private AppSettings _appSettings;
+        public LogoutController(IOptions<AppSettings> appSettings)
         {
-            this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
-
-            HttpContext.Session.Clear();
-            return Json(true);
+            _appSettings = appSettings.Value;
         }
 
         [HttpPost]
@@ -22,7 +19,8 @@ namespace Api.Controllers
             this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
 
             HttpContext.Session.Clear();
-            return Json(true);
+
+            return this.Redirect(_appSettings.WebSiteUrl + "/");
         }
     }
 }
