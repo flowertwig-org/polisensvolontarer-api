@@ -21,22 +21,60 @@ namespace Api.Controllers
         // GET api/Assignments/{id}
         [HttpGet]
         //[ResponseCache(VaryByHeader = "Cookie", VaryByQueryKeys = new[] { "key" }, Duration = 60)]
-        public IGrouping<string, Assignment>[] Get(string key)
+        public AvailableAssignmentsResult Get(string key, int startIndex = 0, int nOfItems = -1,
+            string filterAlwaysShowTypes = null, string filterNeverShowTypes = null,
+            string filterHideWorkDayTypes = null, string filterHideWeekendTypes = null,
+            string filterNeverShowAreas = null, string filterAlwaysShowAreas = null,
+            string filterNeverShowSpecTypes = null)
         {
             this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
 
+            var totalNofItems = 0;
             // TODO: 1. Sanity checking
             // TODO: 2. Validate login
             List<Assignment> list = AvailableAssignmentsHelper.GetAvailableAssignments(this.HttpContext);
+            totalNofItems = list.Count;
+
+            // filter items
+            var filterNofItems = 0;
+            var filterSettings = AvailableAssignmentsHelper.GetFilterSettings(filterAlwaysShowTypes,
+                filterNeverShowTypes,
+                filterHideWorkDayTypes,
+                filterHideWeekendTypes,
+                filterNeverShowAreas,
+                filterAlwaysShowAreas,
+                filterNeverShowSpecTypes
+            );
+
+            list = AvailableAssignmentsHelper.FilerItems(list, filterSettings);
+
+            // only get ONE item, if available
             if (key != null)
             {
                 list = list.Where(a => a.Id == key).ToList();
             }
-            // TODO: 3. Return available assignmets
-            var groupedList = list.GroupBy(AvailableAssignmentsHelper.GroupByDay);
-            return groupedList.ToArray();
-        }
 
+            // support paging, start position
+            if (startIndex > 0)
+            {
+                list = list.Skip(startIndex).ToList();
+            }
+
+            // support paging, number of items
+            if (nOfItems > 0)
+            {
+                list = list.Take(nOfItems).ToList();
+            }
+
+            // 3. Return available assignmets
+            var groupedList = list.GroupBy(AvailableAssignmentsHelper.GroupByDay);
+
+            return new AvailableAssignmentsResult {
+                TotalNumberOfItems = totalNofItems,
+                FilteredNofItems = filterNofItems,
+                Items = groupedList.ToArray()
+            };
+        }
 
         // POST api/AvailableAssignments
         [HttpPost]
