@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Api.Contracts;
 using Microsoft.AspNetCore.Http;
@@ -11,7 +12,7 @@ namespace Api.Helpers
         public static List<string> GetTypes()
         {
             // Order MUST remain (stored in user cookies), add more items last
-            var types = new List<string>{ 
+            var types = new List<string>{
                 "Biträde vid utbildning /möte",
                 "Brottsofferstöd",
                 "Dagvandring",
@@ -39,7 +40,8 @@ namespace Api.Helpers
         public static List<string> GetSpecialTypes()
         {
             var specTypes = new List<string> {
-                "EJ går att anmäla intresse till"
+                "EJ går att anmäla intresse till",
+                "redan uppnått önskat antal volontärer"
             };
 
             return specTypes;
@@ -133,15 +135,99 @@ namespace Api.Helpers
             return filterSettings;
         }
 
-        public static List<Assignment> FilerItems(List<Assignment> items, AvailableAssignmentFilterSettings filterSettings)
+        public static List<Assignment> AdvancedFilerItems(List<Assignment> items, AvailableAssignmentFilterSettings filterSettings, HttpContext httpContext, AppSettings appSettings, out int skipCount)
+        {
+            skipCount = 0;
+            List<Assignment> filteredItems = new List<Assignment>(items);
+
+            var isFilterOnlyAssignmentsThatCanBeBooked = filterSettings.NeverShowSpecTypes.Any(x => x == 0);
+            var isFilterNotOverbookedAssignments = filterSettings.NeverShowSpecTypes.Any(x => x == 1);
+            if (isFilterOnlyAssignmentsThatCanBeBooked || isFilterNotOverbookedAssignments)
+            {
+
+                // filters out items that we are not interested in
+                var indexesToRemove = new List<int>();
+                var ourWeekNumber = -1;
+                var hasWeekNumber = false;
+
+                for (int assignmentIndex = 0; assignmentIndex < items.Count; assignmentIndex++)
+                {
+                    var assignment = items[assignmentIndex];
+
+                    DateTime date;
+                    if (DateTime.TryParse(assignment.Date, out date))
+                    {
+                        var weekNumber = CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(date, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
+                        if (hasWeekNumber)
+                        {
+                            if (ourWeekNumber != weekNumber)
+                            {
+                                // Only do this for one week at the time, ignore rest (because of performance issues on orginal server)
+                                // It takes 30-40 seconds to do this for all assignments at the same time.
+                                indexesToRemove.Add(assignmentIndex);
+                                continue;
+                            }
+                        }
+
+                        var details = AssignmentDetailHelper.GetAssignmentDetail(httpContext, appSettings, assignment);
+                        var shouldBeKept = true;
+
+                        if (isFilterOnlyAssignmentsThatCanBeBooked)
+                        {
+                            shouldBeKept = details.InterestsValues.Count > 0;
+                        }
+
+                        if (shouldBeKept && isFilterNotOverbookedAssignments)
+                        {
+                            int currentNumberOfPeople, wantedNumberOfPeople;
+                            if (int.TryParse(details.CurrentNumberOfPeople, out currentNumberOfPeople) && int.TryParse(details.WantedNumberOfPeople, out wantedNumberOfPeople))
+                            {
+                                shouldBeKept = currentNumberOfPeople < wantedNumberOfPeople;
+                            }
+                        }
+
+                        if (shouldBeKept)
+                        {
+                            if (!hasWeekNumber)
+                            {
+                                ourWeekNumber = weekNumber;
+                                hasWeekNumber = true;
+                            }
+                            skipCount++;
+                        }
+                        else {
+                            indexesToRemove.Add(assignmentIndex);
+                            skipCount++;
+                        }
+                        // Make some efforts to not DDOS orginal server
+                        //System.Threading.Thread.Sleep(10);
+                    }
+                }
+
+                if (indexesToRemove.Count > 0)
+                {
+                    indexesToRemove.Reverse();
+
+                    for (var removeIndex = 0; removeIndex < indexesToRemove.Count; removeIndex++)
+                    {
+                        var indexToRemove = indexesToRemove[removeIndex];
+                        filteredItems.RemoveAt(indexToRemove);
+                    }
+                }
+            }
+
+            return filteredItems;
+        }
+
+        public static List<Assignment> FilerItems(List<Assignment> items, AvailableAssignmentFilterSettings filterSettings, HttpContext httpContext, AppSettings appSettings)
         {
             List<Assignment> filteredItems = new List<Assignment>(items);
             // filters out items that we are not interested in
             var indexesToRemove = new List<int>();
-            var itemsMarkedAsRemove = false;
 
             for (int assignmentIndex = 0; assignmentIndex < items.Count; assignmentIndex++)
             {
+                var itemsMarkedAsRemove = false;
                 var assignment = items[assignmentIndex];
 
                 var isProtected = false;
@@ -227,19 +313,6 @@ namespace Api.Helpers
                         }
                     }
                 }
-
-                if (!itemsMarkedAsRemove)
-                {
-                    for (int index = 0; index < filterSettings.NeverShowSpecTypes.Count; index++)
-                    {
-                        var typeName = GetSpecTypeName(filterSettings.NeverShowSpecTypes[index]);
-                        if (assignment.Category == typeName)
-                        {
-                            indexesToRemove.Add(assignmentIndex);
-                            itemsMarkedAsRemove = true;
-                        }
-                    }
-                }
             }
 
             if (indexesToRemove.Count > 0)
@@ -249,7 +322,7 @@ namespace Api.Helpers
                 for (var removeIndex = 0; removeIndex < indexesToRemove.Count; removeIndex++)
                 {
                     var indexToRemove = indexesToRemove[removeIndex];
-                    items.RemoveAt(indexToRemove);
+                    filteredItems.RemoveAt(indexToRemove);
                 }
             }
 

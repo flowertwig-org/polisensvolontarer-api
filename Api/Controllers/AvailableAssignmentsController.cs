@@ -27,7 +27,8 @@ namespace Api.Controllers
             string filterNeverShowAreas = null, string filterAlwaysShowAreas = null,
             string filterNeverShowSpecTypes = null)
         {
-            this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
+            // Spara svaret i 5 minuter (detta gör att sidor laddar snabbare när vi går tillbaka från att se detaljer för ett uppdrag)
+            this.Response.Headers.Add("Cache-Control", "max-age=300");
 
             var totalNofItems = 0;
             // TODO: 1. Sanity checking
@@ -46,7 +47,8 @@ namespace Api.Controllers
                 filterNeverShowSpecTypes
             );
 
-            list = AvailableAssignmentsHelper.FilerItems(list, filterSettings);
+            list = AvailableAssignmentsHelper.FilerItems(list, filterSettings, HttpContext, _appSettings);
+            filterNofItems = list.Count;
 
             // only get ONE item, if available
             if (key != null)
@@ -60,6 +62,9 @@ namespace Api.Controllers
                 list = list.Skip(startIndex).ToList();
             }
 
+            int skipCount;
+            list = AvailableAssignmentsHelper.AdvancedFilerItems(list, filterSettings, HttpContext, _appSettings, out skipCount);
+
             // support paging, number of items
             if (nOfItems > 0)
             {
@@ -69,7 +74,14 @@ namespace Api.Controllers
             // 3. Return available assignmets
             var groupedList = list.GroupBy(AvailableAssignmentsHelper.GroupByDay);
 
+            var nextStartIndex = 0;
+            if (skipCount > 0 && list.Count > 0)
+            {
+                nextStartIndex = skipCount + startIndex;
+            }
+
             return new AvailableAssignmentsResult {
+                NextStartIndex = nextStartIndex,
                 TotalNumberOfItems = totalNofItems,
                 FilteredNofItems = filterNofItems,
                 Items = groupedList.ToArray()
@@ -91,8 +103,15 @@ namespace Api.Controllers
             // TODO: 2. Validate login
             // TODO: 3. Sign up for specific assignmet
 
-            var cookieContainer = new CookieContainer();
 
+            var assignment = AssignmentDetailHelper.GetAssignmentDetail(HttpContext, _appSettings, item);
+
+            if (assignment == null)
+            {
+                return NotFound();
+            }
+
+            var cookieContainer = new CookieContainer();
             byte[] cookieData;
             if (HttpContext.Session.TryGetValue("Session-Cookie", out cookieData))
             {
@@ -101,14 +120,6 @@ namespace Api.Controllers
 
                 using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
                 {
-                    var assignment = AssignmentDetailHelper.GetAssignmentDetailFromUrl(handler, item, _appSettings.WebSiteUrl);
-
-                    if (assignment == null)
-                    {
-                        return NotFound();
-                    }
-
-
                     AssignmentDetailHelper.SubmitInterestOfAssignment(handler, assignment, comment, password);
 
                     return this.Ok();

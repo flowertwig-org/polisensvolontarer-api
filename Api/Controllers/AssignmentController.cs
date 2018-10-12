@@ -36,47 +36,31 @@ namespace Api.Controllers
                     return Json(null);
                 }
 
-                var cookieContainer = new CookieContainer();
-
-                byte[] cookieData;
-                if (HttpContext.Session.TryGetValue("Session-Cookie", out cookieData))
+                var assignment = AssignmentDetailHelper.GetAssignmentDetail(HttpContext, _appSettings, item);
+                if (assignment == null)
                 {
-                    var sessionCookie = System.Text.Encoding.UTF8.GetString(cookieData);
-                    cookieContainer.Add(new System.Uri("http://volontar.polisen.se/"), new Cookie("PHPSESSID", sessionCookie));
-
-                    using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
-                    {
-                        var assignment = AssignmentDetailHelper.GetAssignmentDetailFromUrl(handler, item, _appSettings.WebSiteUrl);
-
-                        if (assignment == null)
-                        {
-                            return Json(null);
-                        }
-
-                        return Json(new AssignmentDetail
-                        {
-                            Id = item.Id,
-                            Name = item.Name,
-                            Category = item.Category,
-                            Date = item.Date,
-                            Area = item.Area,
-                            Description = assignment.Description,
-                            Time = assignment.Time,
-                            ContactInfo = assignment.ContactInfo,
-                            MeetupTime = assignment.MeetupTime,
-                            MeetupPlace = assignment.MeetupPlace,
-                            LastRequestDate = assignment.LastRequestDate,
-                            GoogleCalendarEventUrl = assignment.GoogleCalendarEventUrl,
-                            WantedNumberOfPeople = assignment.WantedNumberOfPeople,
-                            CurrentNumberOfPeople = assignment.CurrentNumberOfPeople,
-                            InterestsFormUrl = assignment.InterestsFormUrl,
-                            InterestsValues = assignment.InterestsValues
-                        });
-                    }
+                    return Json(null);
                 }
 
-                return Json(null);
-
+                return Json(new AssignmentDetail
+                {
+                    Id = item.Id,
+                    Name = item.Name,
+                    Category = item.Category,
+                    Date = item.Date,
+                    Area = item.Area,
+                    Description = assignment.Description,
+                    Time = assignment.Time,
+                    ContactInfo = assignment.ContactInfo,
+                    MeetupTime = assignment.MeetupTime,
+                    MeetupPlace = assignment.MeetupPlace,
+                    LastRequestDate = assignment.LastRequestDate,
+                    GoogleCalendarEventUrl = assignment.GoogleCalendarEventUrl,
+                    WantedNumberOfPeople = assignment.WantedNumberOfPeople,
+                    CurrentNumberOfPeople = assignment.CurrentNumberOfPeople,
+                    InterestsFormUrl = assignment.InterestsFormUrl,
+                    InterestsValues = assignment.InterestsValues
+                });
             }
             catch (System.Exception ex)
             {
