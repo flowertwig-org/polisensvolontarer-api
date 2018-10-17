@@ -1,14 +1,39 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Net.Http;
-using System.Text.RegularExpressions;
+﻿using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
 using Api.Contracts;
+using System.Linq;
+using Api.Helpers;
+using Microsoft.Extensions.Options;
+using System.Net.Http;
+using System.Net;
+using System;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http;
 
 namespace Api.Helpers
 {
     public class AssignmentDetailHelper
     {
+        public static AssignmentDetail GetAssignmentDetail(HttpContext httpContext, AppSettings appSettings, Assignment item)
+        {
+            var cookieContainer = new CookieContainer();
+
+            byte[] cookieData;
+            if (httpContext.Session.TryGetValue("Session-Cookie", out cookieData))
+            {
+                var sessionCookie = System.Text.Encoding.UTF8.GetString(cookieData);
+                cookieContainer.Add(new Uri("http://volontar.polisen.se/"), new Cookie("PHPSESSID", sessionCookie));
+
+                using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
+                {
+                    var assignment = GetAssignmentDetailFromUrl(handler, item, appSettings.WebSiteUrl);
+
+                    return assignment;
+                }
+            }
+            return null;
+        }
+
         public static AssignmentDetail GetAssignmentDetailFromUrl(HttpClientHandler handler, Assignment baseAssignment, string webSiteUrl)
         {
             try

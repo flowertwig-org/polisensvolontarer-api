@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Linq;
+using System.Net;
 using System.Net.Http;
 using Api.Helpers;
 using Microsoft.AspNetCore.Mvc;
@@ -78,6 +79,7 @@ namespace Api.Controllers
                     var availableAssignments = Newtonsoft.Json.JsonConvert.SerializeObject(info.AvailableAssignments.Assignments.ToArray());
                     HttpContext.Session.Set("AvailableAssignments", System.Text.Encoding.UTF8.GetBytes(availableAssignments));
 
+
                     var mainNavigation = Newtonsoft.Json.JsonConvert.SerializeObject(info.MainNavigation);
                     HttpContext.Session.Set("MainNavigation", System.Text.Encoding.UTF8.GetBytes(mainNavigation));
 
@@ -85,7 +87,19 @@ namespace Api.Controllers
                     {
                         case "assignment":
                             if (query != null && query.IndexOf('?') == 0) {
-                                return this.Redirect(_appSettings.WebSiteUrl + "/restricted/assignment/" + query + passwordStatusQuery.Replace('?','&'));
+                                // lookup assignment
+                                var assignmentId = query.Replace("?key=", "");
+                                var assignment = info.AvailableAssignments.Assignments.FirstOrDefault(a => a.Id == assignmentId);
+                                if (assignment == null)
+                                {
+                                    // Assignment can't be found, go to start page instead
+                                    return this.Redirect(_appSettings.WebSiteUrl + "/restricted/" + passwordStatusQuery);
+                                }
+                                else
+                                {
+                                    // go to assignment
+                                    return this.Redirect(_appSettings.WebSiteUrl + "/restricted/assignment/?key=" + assignmentId + passwordStatusQuery.Replace('?', '&'));
+                                }
                             }
                             else {
                                 return this.Redirect(_appSettings.WebSiteUrl + "/restricted/available-assignments/" + passwordStatusQuery);
