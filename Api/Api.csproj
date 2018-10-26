@@ -33,4 +33,10 @@
   <ItemGroup>
     <None Include="wwwroot\favicon.ico" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Remove="wwwroot\favicon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="wwwroot\favicon.ico" />
+  </ItemGroup>
 </Project>
