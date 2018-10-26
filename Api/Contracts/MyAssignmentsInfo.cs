@@ -21,6 +21,7 @@ namespace Api.Contracts
             get;
             set;
         }
+        public IEnumerable<AssignmentHistory> History { get; set; }
 
         public MyAssignmentsInfo()
         {

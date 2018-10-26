@@ -25,7 +25,7 @@ namespace Api.Controllers
         {
             try
             {
-                //this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
+                this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
 
                 // TODO: 1. Sanity checking
                 // TODO: 2. Validate login
