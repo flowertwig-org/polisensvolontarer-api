@@ -25,6 +25,8 @@
 
   <ItemGroup>
     <Compile Remove="Helpers\EncryptHelper.cs" />
+    <Compile Remove="Helpers\MyAssignmentsHistoryHelper.cs" />
+    <Compile Remove="Helpers\MyHistoryHelper.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Remove="wwwroot\favicon.ico" />

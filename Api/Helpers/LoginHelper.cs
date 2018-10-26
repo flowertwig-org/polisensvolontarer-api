@@ -17,7 +17,10 @@ namespace Api.Helpers
 
         public static string GetLoginUrl(HttpClientHandler handler) {
 			HttpClient client = new HttpClient(handler);
-			using (var response = client.GetAsync("http://volontar.polisen.se").Result)
+
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "VolontarPortal/1.0");
+
+            using (var response = client.GetAsync("http://volontar.polisen.se").Result)
 			{
 				using (var responseContent = response.Content)
 				{
@@ -45,6 +48,9 @@ namespace Api.Helpers
                 var hashPrefix = hash.Substring(0, 5);
 
                 HttpClient httpClient = new HttpClient();
+
+                httpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "VolontarPortal/1.0");
+
                 httpClient.Timeout = new System.TimeSpan(0, 0, 1);
                 var result = httpClient.GetStringAsync("https://api.pwnedpasswords.com/range/" + hashPrefix).Result;
 

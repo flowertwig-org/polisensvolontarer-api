@@ -43,6 +43,9 @@ namespace Api.Helpers
                 var detailUrl = System.Text.Encoding.UTF8.GetString(idData);
 
                 HttpClient client = new HttpClient(handler);
+
+                client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "VolontarPortal/1.0");
+
                 using (var response = client.GetAsync("http://volontar.polisen.se/" + detailUrl).Result)
                 {
                     using (var responseContent = response.Content)
@@ -299,6 +302,8 @@ namespace Api.Helpers
                 var detailUrl = System.Text.Encoding.UTF8.GetString(idData);
 
                 HttpClient client = new HttpClient(handler);
+
+                client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "VolontarPortal/1.0");
 
                 var httpContentValues = new List<KeyValuePair<string, string>>(assignment.InterestsValues);
 
