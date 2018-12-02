@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Net;
 using System.Net.Http;
+using Api.Contracts;
 using Api.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -50,6 +51,10 @@ namespace Api.Controllers
         {
             this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
 
+            var successfullLogin = false;
+            string redirectUrl = null;
+            var isSecurePassword = false;
+
             var cookieContainer = new CookieContainer();
             using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
             {
@@ -60,10 +65,14 @@ namespace Api.Controllers
                     passwordStatusQuery = "?warning=1";
                 }
 
+                isSecurePassword = passwordStatus;
+
                 // TODO: 1. Sanity checking
                 // TODO: 2. Make login request
                 var loginUrl = LoginHelper.GetLoginUrl(handler);
                 var info = LoginHelper.Login(handler, loginUrl, username, password);
+
+                successfullLogin = info.Status;
 
                 var cookies = cookieContainer.GetCookies(new System.Uri("http://volontar.polisen.se"));
                 foreach (Cookie cookie in cookies)
@@ -93,30 +102,47 @@ namespace Api.Controllers
                                 if (assignment == null)
                                 {
                                     // Assignment can't be found, go to start page instead
-                                    return this.Redirect(_appSettings.WebSiteUrl + "/restricted/" + passwordStatusQuery);
+                                    redirectUrl = _appSettings.WebSiteUrl + "/restricted/" + passwordStatusQuery;
+                                    //return this.Redirect(_appSettings.WebSiteUrl + "/restricted/" + passwordStatusQuery);
                                 }
                                 else
                                 {
                                     // go to assignment
-                                    return this.Redirect(_appSettings.WebSiteUrl + "/restricted/assignment/?key=" + assignmentId + passwordStatusQuery.Replace('?', '&'));
+                                    redirectUrl = _appSettings.WebSiteUrl + "/restricted/assignment/?key=" + assignmentId + passwordStatusQuery.Replace('?', '&');
+                                    //return this.Redirect(_appSettings.WebSiteUrl + "/restricted/assignment/?key=" + assignmentId + passwordStatusQuery.Replace('?', '&'));
                                 }
                             }
                             else {
-                                return this.Redirect(_appSettings.WebSiteUrl + "/restricted/available-assignments/" + passwordStatusQuery);
+                                redirectUrl = _appSettings.WebSiteUrl + "/restricted/available-assignments/" + passwordStatusQuery;
+                                //return this.Redirect(_appSettings.WebSiteUrl + "/restricted/available-assignments/" + passwordStatusQuery);
                             }
+                            break;
                         case "available-assignments":
-                            return this.Redirect(_appSettings.WebSiteUrl + "/restricted/available-assignments/" + passwordStatusQuery);
+                            redirectUrl = _appSettings.WebSiteUrl + "/restricted/available-assignments/" + passwordStatusQuery;
+                            //return this.Redirect(_appSettings.WebSiteUrl + "/restricted/available-assignments/" + passwordStatusQuery);
+                            break;
                         default:
-                            return this.Redirect(_appSettings.WebSiteUrl + "/restricted/" + passwordStatusQuery);
+                            redirectUrl = _appSettings.WebSiteUrl + "/restricted/" + passwordStatusQuery;
+                            //return this.Redirect(_appSettings.WebSiteUrl + "/restricted/" + passwordStatusQuery);
+                            break;
                     }
-                }else {
-                    return this.Redirect(_appSettings.WebSiteUrl + "/?warning=2");
+                }
+                else {
+                    redirectUrl = _appSettings.WebSiteUrl + "/?warning=2";
+                    //return this.Redirect(_appSettings.WebSiteUrl + "/?warning=2");
                 }
 
                 // TODO: 3. If no valid login, return false
                 // TODO: 4a. Add session info
                 // TODO: 4b. return true;
             }
+
+            return Json(new LoginResult
+            {
+                IsSuccess = successfullLogin,
+                IsWeakPassword = !isSecurePassword,
+                RedirectUrl = redirectUrl
+            });
         }
     }
 }

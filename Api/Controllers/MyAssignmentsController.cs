@@ -43,15 +43,15 @@ namespace Api.Controllers
                                 return MyAssignmentsHelper.GetMyAssignmentsInfoFromUrl(handler, navigationInfo);
                             }
                         }
-                        return null;
+                        return new MyAssignmentsInfo { IsLoggedIn = true };
                     }
                 }
-                return null;
+                return new MyAssignmentsInfo { IsLoggedIn = false };
             }
             catch (System.Exception ex)
             {
-                return new MyAssignmentsInfo { Reservations = new List<Assignment> { new AssignmentDetail { Description = "Unknown Error2: " + ex } } };
-
+                // TODO: We don't know if we are logged in BUT while debugging we need to be able to check this
+                return new MyAssignmentsInfo { IsLoggedIn = true, Reservations = new List<Assignment> { new AssignmentDetail { Description = "Unknown Error2: " + ex } } };
             }
         }
     }

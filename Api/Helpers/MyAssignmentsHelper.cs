@@ -49,10 +49,11 @@ namespace Api.Helpers
                             history = new AssignmentsHistoryInfo(pageContent.Substring(historyIndex));
                         }
 
-                        var lastWeek = DateTime.Today.AddDays(-21);
+                        var lastWeek = DateTime.Today.AddDays(-7);
 
                         return new MyAssignmentsInfo
                         {
+                            IsLoggedIn = true,
                             Interests = interests != null ? interests.Assignments : new List<Assignment>(),
                             Confirms = confirms != null ? confirms.Assignments : new List<Assignment>(),
                             Reservations = reservations != null ? reservations.Assignments : new List<Assignment>(),

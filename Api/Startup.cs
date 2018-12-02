@@ -37,9 +37,10 @@ namespace Api
             services.AddSession((SessionOptions options) =>
             {
                 options.IdleTimeout = TimeSpan.FromSeconds(60);
-                options.CookieHttpOnly = true;
-                options.CookieSecure = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
-                options.CookieName = "session";
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
+                options.Cookie.Name = "session";
+                options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
             });
         }
 

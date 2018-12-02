@@ -1,21 +1,25 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using Api.Contracts;
+using Microsoft.AspNetCore.Http;
 
 namespace Api.Helpers
 {
     public class MyAssignmentReportHelper
     {
-        public static string GetReportUrl(HttpClientHandler handler, NavigationInfo navigationInfo, int areaIndex) {
-			HttpClient client = new HttpClient(handler);
+        public static string GetReportUrl(HttpClientHandler handler, NavigationInfo navigationInfo, int areaIndex)
+        {
+            HttpClient client = new HttpClient(handler);
 
             client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "VolontarPortal/1.0");
 
             using (var response = client.GetAsync("http://volontar.polisen.se/" + navigationInfo.MyAssignmentsReportTypesUrl).Result)
-			{
-				using (var responseContent = response.Content)
-				{
-					var content = responseContent.ReadAsStringAsync().Result;
+            {
+                using (var responseContent = response.Content)
+                {
+                    var content = responseContent.ReadAsStringAsync().Result;
 
                     var areas = AvailableAssignmentsHelper.GetAreas();
                     var areaCount = areas.Count;
@@ -69,9 +73,80 @@ namespace Api.Helpers
                         }
                     }
                 }
-			}
+            }
             return null;
-		}
+        }
+
+        public class ReportInfo
+        {
+            public string ActionUrl { get; set; }
+            public string UserFullName { get; set; }
+        }
+
+        public static ReportInfo GetReportActionUrlAndUserName(HttpClientHandler handler, string reportUrl)
+        {
+            ReportInfo info = new ReportInfo();
+
+            HttpClient client = new HttpClient(handler);
+
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "VolontarPortal/1.0");
+
+            using (var response = client.GetAsync(reportUrl).Result)
+            {
+                using (var responseContent = response.Content)
+                {
+                    var content = responseContent.ReadAsStringAsync().Result;
+
+                    var urlMatch = System.Text.RegularExpressions.Regex.Match(content, "action=\"(?<url>[^\"]+)\"");
+                    if (urlMatch.Success)
+                    {
+                        var urlGroup = urlMatch.Groups["url"];
+                        if (urlGroup.Success)
+                        {
+                            info.ActionUrl = "http://volontar.polisen.se/" + urlGroup.Value.Replace("../", "");
+                        }
+                    }
+
+                    var nameMatch = System.Text.RegularExpressions.Regex.Match(content, "<span class=\"Inloggad\"><strong><strong>(?<fullName>[^<]+)<\\/strong><\\/strong>");
+                    if (nameMatch.Success)
+                    {
+                        var nameGroup = nameMatch.Groups["fullName"];
+                        if (nameGroup.Success)
+                        {
+                            info.UserFullName = nameGroup.Value;
+                        }
+                    }
+                }
+            }
+
+            return info;
+        }
+
+        public static string GetUserEmail(HttpContext httpContext, AppSettings appSettings)
+        {
+            var assignments = AvailableAssignmentsHelper.GetAvailableAssignments(httpContext);
+
+            for (int assignmentIndex = 0; assignmentIndex < assignments.Count; assignmentIndex++)
+            {
+                var currentAssignment = assignments[assignmentIndex];
+
+                if (currentAssignment != null)
+                {
+                    var assignmentDetail = AssignmentDetailHelper.GetAssignmentDetail(httpContext, appSettings, currentAssignment);
+                    if (assignmentDetail != null)
+                    {
+                        var matchingPairs = assignmentDetail.InterestsValues.Where(pair => pair.Key == "login").ToList();
+                        if (matchingPairs.Count > 0)
+                        {
+                            // We have found email
+                            return matchingPairs[0].Value;
+                        }
+                    }
+                }
+                assignmentIndex++;
+            }
+            return string.Empty;
+        }
 
         public static bool PostReport(
             HttpClientHandler handler, string reportUrl,
@@ -80,7 +155,7 @@ namespace Api.Helpers
             string feedback1,
             string feedback2,
             string feedback3)
-		{
+        {
             // ta fram ref_page = web_page-s1/299:
             // kör nedan regexp på url till uppdrags rapport:
             // \/([0-9]{2,4})\/
@@ -108,6 +183,7 @@ namespace Api.Helpers
                         new KeyValuePair<string, string>( "sd_formcount", "1"),
                         new KeyValuePair<string, string>( "submit_4_5", "Submit")
                     });
+
                     using (var response = client.PostAsync(reportUrl, httpContent).Result)
                     {
                         using (var responseContent = response.Content)
@@ -118,11 +194,10 @@ namespace Api.Helpers
                         }
                     }
                 }
-
             }
 
             return false;
-		}
+        }
 
         private static bool IsThanksContent(string content)
         {

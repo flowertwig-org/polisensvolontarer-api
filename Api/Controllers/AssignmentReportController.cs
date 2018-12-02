@@ -39,7 +39,7 @@ namespace Api.Controllers
         // POST api/AvailableAssignments
         [HttpPost]
         public bool Post(
-            [FromForm]string name, [FromForm]string email,
+            [FromForm]bool anonymous,
             [FromForm]string assignmentOrDate, [FromForm]int areaIndex,
             [FromForm]string feedback1, [FromForm]string feedback2, [FromForm]string feedback3)
         {
@@ -67,8 +67,27 @@ namespace Api.Controllers
                                 return false;
                             }
 
+                            var reportInfo = MyAssignmentReportHelper.GetReportActionUrlAndUserName(handler, reportUrl);
+                            var actionUrl = reportInfo.ActionUrl;
+                            if (string.IsNullOrEmpty(actionUrl))
+                            {
+                                return false;
+                            }
+
+                            var name = "";
+                            var email = "";
+                            if (!anonymous)
+                            {
+                                name = reportInfo.UserFullName ?? "";
+                                email = MyAssignmentReportHelper.GetUserEmail(HttpContext, _appSettings) ?? "";
+                            }
+                            else
+                            {
+                                name = "Användaren har valt att vara anonym";
+                            }
+
                             var result = MyAssignmentReportHelper.PostReport(
-                                handler, reportUrl,
+                                handler, actionUrl,
                                 name, email,
                                 assignmentOrDate,
                                 feedback1, feedback2, feedback3
