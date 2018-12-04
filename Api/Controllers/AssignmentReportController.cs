@@ -36,13 +36,22 @@ namespace Api.Controllers
             }
         }
 
+        public class ReportResult
+        {
+            public bool IsSuccess { get; set; }
+            //public string Name { get; set; }
+            //public string Email { get; set; }
+        }
+
         // POST api/AvailableAssignments
         [HttpPost]
-        public bool Post(
+        public ReportResult Post(
             [FromForm]bool anonymous,
             [FromForm]string assignmentOrDate, [FromForm]int areaIndex,
             [FromForm]string feedback1, [FromForm]string feedback2, [FromForm]string feedback3)
         {
+            ReportResult reportResult = new ReportResult();
+
             var cookieContainer = new CookieContainer();
 
             byte[] cookieData;
@@ -64,14 +73,14 @@ namespace Api.Controllers
                             var reportUrl = MyAssignmentReportHelper.GetReportUrl(handler, navigationInfo, areaIndex);
                             if (string.IsNullOrEmpty(reportUrl))
                             {
-                                return false;
+                                return reportResult;
                             }
 
                             var reportInfo = MyAssignmentReportHelper.GetReportActionUrlAndUserName(handler, reportUrl);
                             var actionUrl = reportInfo.ActionUrl;
                             if (string.IsNullOrEmpty(actionUrl))
                             {
-                                return false;
+                                return reportResult;
                             }
 
                             var name = "";
@@ -86,20 +95,23 @@ namespace Api.Controllers
                                 name = "Användaren har valt att vara anonym";
                             }
 
-                            var result = MyAssignmentReportHelper.PostReport(
-                                handler, actionUrl,
-                                name, email,
-                                assignmentOrDate,
-                                feedback1, feedback2, feedback3
-                            );
+                            //reportResult.Name = name;
+                            //reportResult.Email = email;
 
-                            return result;
+                            //var result = MyAssignmentReportHelper.PostReport(
+                            //    handler, actionUrl,
+                            //    name, email,
+                            //    assignmentOrDate,
+                            //    feedback1, feedback2, feedback3
+                            //);
+
+                            return reportResult;
                         }
                     }
                 }
             }
 
-            return false;
+            return reportResult;
         }
     }
 }

@@ -74,17 +74,17 @@ namespace Api.Controllers
 
                 successfullLogin = info.Status;
 
-                var cookies = cookieContainer.GetCookies(new System.Uri("http://volontar.polisen.se"));
-                foreach (Cookie cookie in cookies)
-                {
-                    if (cookie.Name == "PHPSESSID")
-                    {
-                        HttpContext.Session.Set("Session-Cookie", System.Text.Encoding.UTF8.GetBytes(cookie.Value));
-                    }
-                }
-
                 if (info.Status)
                 {
+                    var cookies = cookieContainer.GetCookies(new System.Uri("http://volontar.polisen.se"));
+                    foreach (Cookie cookie in cookies)
+                    {
+                        if (cookie.Name == "PHPSESSID")
+                        {
+                            HttpContext.Session.Set("Session-Cookie", System.Text.Encoding.UTF8.GetBytes(cookie.Value));
+                        }
+                    }
+
                     var availableAssignments = Newtonsoft.Json.JsonConvert.SerializeObject(info.AvailableAssignments.Assignments.ToArray());
                     HttpContext.Session.Set("AvailableAssignments", System.Text.Encoding.UTF8.GetBytes(availableAssignments));
 
