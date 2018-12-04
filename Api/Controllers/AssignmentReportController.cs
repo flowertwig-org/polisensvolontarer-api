@@ -98,12 +98,14 @@ namespace Api.Controllers
                             //reportResult.Name = name;
                             //reportResult.Email = email;
 
-                            //var result = MyAssignmentReportHelper.PostReport(
-                            //    handler, actionUrl,
-                            //    name, email,
-                            //    assignmentOrDate,
-                            //    feedback1, feedback2, feedback3
-                            //);
+                            var result = MyAssignmentReportHelper.PostReport(
+                                handler, actionUrl,
+                                name, email,
+                                assignmentOrDate,
+                                feedback1, feedback2, feedback3
+                            );
+
+                            reportResult.IsSuccess = result;
 
                             return reportResult;
                         }
