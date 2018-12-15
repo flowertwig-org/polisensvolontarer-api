@@ -1,7 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
 using Api.Contracts;
 using Api.Helpers;
 using Microsoft.AspNetCore.Mvc;
@@ -21,22 +19,22 @@ namespace Api.Controllers
         // GET api/Assignment/{id}
         [HttpGet]
         //[ResponseCache(VaryByQueryKeys = new[] { "key" }, Duration = 60)]
-        public JsonResult Get(string key)
+        public JsonResult Get(string key, string cookieFailKey = null)
         {
             try
             {
                 this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
 
-                // TODO: 1. Sanity checking
-                // TODO: 2. Validate login
-                List<Assignment> list = AvailableAssignmentsHelper.GetAvailableAssignments(this.HttpContext);
+                var keyInfo = new CookieFailKeyInfo(cookieFailKey);
+
+                List<Assignment> list = AvailableAssignmentsHelper.GetAvailableAssignments(this.HttpContext, keyInfo);
                 var item = list.FirstOrDefault(a => a.Id == key);
                 if (item == null)
                 {
                     return Json(null);
                 }
 
-                var assignment = AssignmentDetailHelper.GetAssignmentDetail(HttpContext, _appSettings, item);
+                var assignment = AssignmentDetailHelper.GetAssignmentDetail(HttpContext, keyInfo, _appSettings, item);
                 if (assignment == null)
                 {
                     return Json(null);
