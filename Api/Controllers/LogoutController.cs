@@ -20,7 +20,7 @@ namespace Api.Controllers
 
             HttpContext.Session.Clear();
 
-            return this.Redirect(_appSettings.WebSiteUrl + "/");
+            return this.Redirect(_appSettings.WebSiteUrl + "/?logout=1");
         }
     }
 }

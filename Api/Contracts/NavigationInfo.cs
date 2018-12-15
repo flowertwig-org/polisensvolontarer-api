@@ -36,6 +36,7 @@ namespace Api.Contracts
             this.AvailableAssignmentsUrl = GetLink("Aktuella uppdrag");
             this.CoordinatorsUrl = GetLink("Samordnare");
             this.CoordinatorsUrl = GetLink("Samordnare");
+            this.ChangePasswordUrl = GetLink("Ändra lösenord");
 
             var regExp = "href=\"(?<logoutLink>[^\"]+logout=1)\"";
             var match = System.Text.RegularExpressions.Regex.Match(this.content, regExp);
@@ -75,7 +76,7 @@ namespace Api.Contracts
             get;
             set;
         }
-
+        public string ChangePasswordUrl { get; set; }
         public string ContactFormUrl
         {
             get;

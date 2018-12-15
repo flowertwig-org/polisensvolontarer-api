@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Net;
 using System.Net.Http;
+using Api.Contracts;
 using Api.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -18,37 +19,33 @@ namespace Api.Controllers
 
         // GET api/values
         [HttpGet]
-        public bool Get()
+        public bool Get([FromQuery]string cookieFailKey)
         {
             this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
 
             try
             {
-                byte[] data;
-                if (HttpContext.Session.TryGetValue("Session-Cookie", out data)) {
-                    string content = System.Text.Encoding.UTF8.GetString(data);
-                    return (!string.IsNullOrEmpty(content));
-                }
-                // TODO: 1. Sanity checking
-                // TODO: 2. Return login status
-                // TODO: 3. If no valid login, return false
-                // TODO: 4a. Add session info
-                // TODO: 4b. return true;
+                var keyInfo = new CookieFailKeyInfo(cookieFailKey);
 
-                return false;
+                var list = AvailableAssignmentsHelper.GetAvailableAssignments(HttpContext, keyInfo);
+                return list.Count > 0;
             }
             catch (System.Exception)
             {
                 return false;
             }
-
         }
 
         // POST api/values
         [HttpPost]
-        public IActionResult Post([FromForm]string username, [FromForm]string password, [FromForm]string page, [FromForm]string query)
+        public IActionResult Post([FromForm]string username, [FromForm]string password, [FromForm]string page, [FromForm]string query, [FromForm]bool failedCookieCheck)
         {
             this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
+
+            var successfullLogin = false;
+            string redirectUrl = null;
+            var isSecurePassword = false;
+            string cookieFailKey = "";
 
             var cookieContainer = new CookieContainer();
             using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
@@ -60,22 +57,30 @@ namespace Api.Controllers
                     passwordStatusQuery = "?warning=1";
                 }
 
+                isSecurePassword = passwordStatus;
+
                 // TODO: 1. Sanity checking
                 // TODO: 2. Make login request
                 var loginUrl = LoginHelper.GetLoginUrl(handler);
                 var info = LoginHelper.Login(handler, loginUrl, username, password);
 
-                var cookies = cookieContainer.GetCookies(new System.Uri("http://volontar.polisen.se"));
-                foreach (Cookie cookie in cookies)
-                {
-                    if (cookie.Name == "PHPSESSID")
-                    {
-                        HttpContext.Session.Set("Session-Cookie", System.Text.Encoding.UTF8.GetBytes(cookie.Value));
-                    }
-                }
+                successfullLogin = info.Status;
 
                 if (info.Status)
                 {
+                    var cookies = cookieContainer.GetCookies(new System.Uri("http://volontar.polisen.se"));
+                    foreach (Cookie cookie in cookies)
+                    {
+                        if (cookie.Name == "PHPSESSID")
+                        {
+                            HttpContext.Session.Set("Session-Cookie", System.Text.Encoding.UTF8.GetBytes(cookie.Value));
+                            if (failedCookieCheck)
+                            {
+                                cookieFailKey = CookieFailKeyInfo.ToKey(cookie.Value, info.MainNavigation.AvailableAssignmentsUrl);
+                            }
+                        }
+                    }
+
                     var availableAssignments = Newtonsoft.Json.JsonConvert.SerializeObject(info.AvailableAssignments.Assignments.ToArray());
                     HttpContext.Session.Set("AvailableAssignments", System.Text.Encoding.UTF8.GetBytes(availableAssignments));
 
@@ -93,30 +98,48 @@ namespace Api.Controllers
                                 if (assignment == null)
                                 {
                                     // Assignment can't be found, go to start page instead
-                                    return this.Redirect(_appSettings.WebSiteUrl + "/restricted/" + passwordStatusQuery);
+                                    redirectUrl = _appSettings.WebSiteUrl + "/restricted/" + passwordStatusQuery;
+                                    //return this.Redirect(_appSettings.WebSiteUrl + "/restricted/" + passwordStatusQuery);
                                 }
                                 else
                                 {
                                     // go to assignment
-                                    return this.Redirect(_appSettings.WebSiteUrl + "/restricted/assignment/?key=" + assignmentId + passwordStatusQuery.Replace('?', '&'));
+                                    redirectUrl = _appSettings.WebSiteUrl + "/restricted/assignment/?key=" + assignmentId + passwordStatusQuery.Replace('?', '&');
+                                    //return this.Redirect(_appSettings.WebSiteUrl + "/restricted/assignment/?key=" + assignmentId + passwordStatusQuery.Replace('?', '&'));
                                 }
                             }
                             else {
-                                return this.Redirect(_appSettings.WebSiteUrl + "/restricted/available-assignments/" + passwordStatusQuery);
+                                redirectUrl = _appSettings.WebSiteUrl + "/restricted/available-assignments/" + passwordStatusQuery;
+                                //return this.Redirect(_appSettings.WebSiteUrl + "/restricted/available-assignments/" + passwordStatusQuery);
                             }
+                            break;
                         case "available-assignments":
-                            return this.Redirect(_appSettings.WebSiteUrl + "/restricted/available-assignments/" + passwordStatusQuery);
+                            redirectUrl = _appSettings.WebSiteUrl + "/restricted/available-assignments/" + passwordStatusQuery;
+                            //return this.Redirect(_appSettings.WebSiteUrl + "/restricted/available-assignments/" + passwordStatusQuery);
+                            break;
                         default:
-                            return this.Redirect(_appSettings.WebSiteUrl + "/restricted/" + passwordStatusQuery);
+                            redirectUrl = _appSettings.WebSiteUrl + "/restricted/" + passwordStatusQuery;
+                            //return this.Redirect(_appSettings.WebSiteUrl + "/restricted/" + passwordStatusQuery);
+                            break;
                     }
-                }else {
-                    return this.Redirect(_appSettings.WebSiteUrl + "/?warning=2");
+                }
+                else {
+                    redirectUrl = _appSettings.WebSiteUrl + "/?warning=2";
+                    //return this.Redirect(_appSettings.WebSiteUrl + "/?warning=2");
                 }
 
                 // TODO: 3. If no valid login, return false
                 // TODO: 4a. Add session info
                 // TODO: 4b. return true;
             }
+
+            return Json(new LoginResult
+            {
+                IsSuccess = successfullLogin,
+                IsWeakPassword = !isSecurePassword,
+                RedirectUrl = redirectUrl,
+                CookieFailKey = cookieFailKey
+            });
         }
     }
 }

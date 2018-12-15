@@ -4,6 +4,12 @@ namespace Api.Contracts
 {
     public class MyAssignmentsInfo
     {
+        public bool IsLoggedIn
+        {
+            get;
+            set;
+        }
+
         public IEnumerable<Assignment> Interests
         {
             get;

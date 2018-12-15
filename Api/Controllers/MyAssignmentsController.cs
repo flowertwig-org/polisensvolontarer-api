@@ -12,46 +12,20 @@ namespace Api.Controllers
     {
         // GET api/values
         [HttpGet]
-        public MyAssignmentsInfo Get()
+        public MyAssignmentsInfo Get(string cookieFailKey = null)
         {
             this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
 
-            // TODO: 1. Sanity checking
-            // TODO: 2. Validate login
-            // TODO: 3. Return my assignmets
+            var keyInfo = new CookieFailKeyInfo(cookieFailKey);
 
             try
             {
-                var cookieContainer = new CookieContainer();
-
-                byte[] cookieData;
-                if (HttpContext.Session.TryGetValue("Session-Cookie", out cookieData))
-                {
-                    var sessionCookie = System.Text.Encoding.UTF8.GetString(cookieData);
-                    cookieContainer.Add(new System.Uri("http://volontar.polisen.se/"), new Cookie("PHPSESSID", sessionCookie));
-
-                    using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
-                    {
-                        byte[] data;
-                        if (this.HttpContext.Session.TryGetValue("MainNavigation", out data))
-                        {
-                            var content = System.Text.Encoding.UTF8.GetString(data);
-                            var jArray = Newtonsoft.Json.JsonConvert.DeserializeObject(content) as Newtonsoft.Json.Linq.JObject;
-                            var navigationInfo = jArray.ToObject<NavigationInfo>();
-                            if (navigationInfo != null)
-                            {
-                                return MyAssignmentsHelper.GetMyAssignmentsInfoFromUrl(handler, navigationInfo);
-                            }
-                        }
-                        return null;
-                    }
-                }
-                return null;
+                return MyAssignmentsHelper.GetMyAssignments(this.HttpContext, keyInfo);
             }
             catch (System.Exception ex)
             {
-                return new MyAssignmentsInfo { Reservations = new List<Assignment> { new AssignmentDetail { Description = "Unknown Error2: " + ex } } };
-
+                // TODO: We don't know if we are logged in BUT while debugging we need to be able to check this
+                return new MyAssignmentsInfo { IsLoggedIn = true, Reservations = new List<Assignment> { new AssignmentDetail { Description = "Unknown Error2: " + ex } } };
             }
         }
     }

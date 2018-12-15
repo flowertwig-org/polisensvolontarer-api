@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using Api.Contracts;
@@ -19,68 +17,95 @@ namespace Api.Controllers
             _appSettings = appSettings.Value;
         }
 
-        // GET api/Assignment/{id}
-        [HttpGet]
-        //[ResponseCache(VaryByQueryKeys = new[] { "key" }, Duration = 60)]
-        public JsonResult Get(string key)
+        public class ReportResult
         {
-            try
-            {
-                this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
-
-                return Json(null);
-            }
-            catch (System.Exception ex)
-            {
-                return Json(new Assignment { Name = ex.Message });
-            }
+            public bool IsSuccess { get; set; }
+            //public string Name { get; set; }
+            //public string Email { get; set; }
         }
 
         // POST api/AvailableAssignments
         [HttpPost]
-        public bool Post(
-            [FromForm]string name, [FromForm]string email,
+        public ReportResult Post(
+            [FromForm]bool anonymous,
             [FromForm]string assignmentOrDate, [FromForm]int areaIndex,
-            [FromForm]string feedback1, [FromForm]string feedback2, [FromForm]string feedback3)
+            [FromForm]string feedback1, [FromForm]string feedback2, [FromForm]string feedback3, string cookieFailKey = null)
         {
-            var cookieContainer = new CookieContainer();
+            ReportResult reportResult = new ReportResult();
 
-            byte[] cookieData;
-            if (HttpContext.Session.TryGetValue("Session-Cookie", out cookieData))
+            var keyInfo = new CookieFailKeyInfo(cookieFailKey);
+
+            var navigationInfo = NavigationHelper.GetNavigation(HttpContext, keyInfo);
+
+            string key = "";
+            if (keyInfo.IsVaild)
             {
-                var sessionCookie = System.Text.Encoding.UTF8.GetString(cookieData);
-                cookieContainer.Add(new Uri("http://volontar.polisen.se/"), new Cookie("PHPSESSID", sessionCookie));
-
-                using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
+                key = keyInfo.Key;
+                var tmpUrl = keyInfo.AvailableAssignmentsUrl;
+            }
+            else
+            {
+                byte[] cookieData;
+                if (HttpContext.Session.TryGetValue("Session-Cookie", out cookieData))
                 {
-                    byte[] data;
-                    if (this.HttpContext.Session.TryGetValue("MainNavigation", out data))
-                    {
-                        var content = System.Text.Encoding.UTF8.GetString(data);
-                        var jArray = Newtonsoft.Json.JsonConvert.DeserializeObject(content) as Newtonsoft.Json.Linq.JObject;
-                        var navigationInfo = jArray.ToObject<NavigationInfo>();
-                        if (navigationInfo != null)
-                        {
-                            var reportUrl = MyAssignmentReportHelper.GetReportUrl(handler, navigationInfo, areaIndex);
-                            if (string.IsNullOrEmpty(reportUrl))
-                            {
-                                return false;
-                            }
-
-                            var result = MyAssignmentReportHelper.PostReport(
-                                handler, reportUrl,
-                                name, email,
-                                assignmentOrDate,
-                                feedback1, feedback2, feedback3
-                            );
-
-                            return result;
-                        }
-                    }
+                    key = System.Text.Encoding.UTF8.GetString(cookieData);
+                }
+                else
+                {
+                    return reportResult;
                 }
             }
 
-            return false;
+            var cookieContainer = new CookieContainer();
+
+            cookieContainer.Add(new Uri("http://volontar.polisen.se/"), new Cookie("PHPSESSID", key));
+
+            using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
+            {
+                if (navigationInfo != null)
+                {
+                    var reportUrl = MyAssignmentReportHelper.GetReportUrl(handler, navigationInfo, areaIndex);
+                    if (string.IsNullOrEmpty(reportUrl))
+                    {
+                        return reportResult;
+                    }
+
+                    var reportInfo = MyAssignmentReportHelper.GetReportActionUrlAndUserName(handler, reportUrl);
+                    var actionUrl = reportInfo.ActionUrl;
+                    if (string.IsNullOrEmpty(actionUrl))
+                    {
+                        return reportResult;
+                    }
+
+                    var name = "";
+                    var email = "";
+                    if (!anonymous)
+                    {
+                        name = reportInfo.UserFullName ?? "";
+                        email = MyAssignmentReportHelper.GetUserEmail(HttpContext, keyInfo, _appSettings) ?? "";
+                    }
+                    else
+                    {
+                        name = "Användaren har valt att vara anonym";
+                    }
+
+                    //reportResult.Name = name;
+                    //reportResult.Email = email;
+
+                    var result = MyAssignmentReportHelper.PostReport(
+                        handler, actionUrl,
+                        name, email,
+                        assignmentOrDate,
+                        feedback1, feedback2, feedback3
+                    );
+
+                    reportResult.IsSuccess = result;
+
+                    return reportResult;
+                }
+            }
+
+            return reportResult;
         }
     }
 }

@@ -25,15 +25,17 @@ namespace Api.Controllers
             string filterAlwaysShowTypes = null, string filterNeverShowTypes = null,
             string filterHideWorkDayTypes = null, string filterHideWeekendTypes = null,
             string filterNeverShowAreas = null, string filterAlwaysShowAreas = null,
-            string filterNeverShowSpecTypes = null)
+            string filterNeverShowSpecTypes = null, string cookieFailKey = null)
         {
             // Spara svaret i 5 minuter (detta gör att sidor laddar snabbare när vi går tillbaka från att se detaljer för ett uppdrag)
             this.Response.Headers.Add("Cache-Control", "max-age=300");
 
+            var keyInfo = new CookieFailKeyInfo(cookieFailKey);
+
             var totalNofItems = 0;
             // TODO: 1. Sanity checking
             // TODO: 2. Validate login
-            List<Assignment> list = AvailableAssignmentsHelper.GetAvailableAssignments(this.HttpContext);
+            List<Assignment> list = AvailableAssignmentsHelper.GetAvailableAssignments(this.HttpContext, keyInfo);
             totalNofItems = list.Count;
 
             // filter items
@@ -63,7 +65,7 @@ namespace Api.Controllers
             }
 
             int skipCount;
-            list = AvailableAssignmentsHelper.AdvancedFilerItems(list, filterSettings, HttpContext, _appSettings, out skipCount);
+            list = AvailableAssignmentsHelper.AdvancedFilerItems(list, filterSettings, HttpContext, keyInfo, _appSettings, out skipCount);
 
             // support paging, number of items
             if (nOfItems > 0)
@@ -80,7 +82,8 @@ namespace Api.Controllers
                 nextStartIndex = skipCount + startIndex;
             }
 
-            return new AvailableAssignmentsResult {
+            return new AvailableAssignmentsResult
+            {
                 NextStartIndex = nextStartIndex,
                 TotalNumberOfItems = totalNofItems,
                 FilteredNofItems = filterNofItems,
@@ -90,44 +93,52 @@ namespace Api.Controllers
 
         // POST api/AvailableAssignments
         [HttpPost]
-        public ActionResult Post([FromForm]string key,[FromForm] string comment,[FromForm] string password)
+        public ActionResult Post([FromForm]string key, [FromForm] string comment, [FromForm] string password, [FromForm]string cookieFailKey = null)
         {
-            List<Assignment> list = AvailableAssignmentsHelper.GetAvailableAssignments(this.HttpContext);
+            var keyInfo = new CookieFailKeyInfo(cookieFailKey);
+
+            List<Assignment> list = AvailableAssignmentsHelper.GetAvailableAssignments(this.HttpContext, keyInfo);
             var item = list.FirstOrDefault(a => a.Id == key);
             if (item == null)
             {
                 return NotFound();
             }
 
-            // TODO: 1. Sanity checking
-            // TODO: 2. Validate login
-            // TODO: 3. Sign up for specific assignmet
-
-
-            var assignment = AssignmentDetailHelper.GetAssignmentDetail(HttpContext, _appSettings, item);
+            var assignment = AssignmentDetailHelper.GetAssignmentDetail(HttpContext, keyInfo, _appSettings, item);
 
             if (assignment == null)
             {
                 return NotFound();
             }
 
-            var cookieContainer = new CookieContainer();
-            byte[] cookieData;
-            if (HttpContext.Session.TryGetValue("Session-Cookie", out cookieData))
+            string sessionKey = "";
+            if (keyInfo.IsVaild)
             {
-                var sessionCookie = System.Text.Encoding.UTF8.GetString(cookieData);
-                cookieContainer.Add(new System.Uri("http://volontar.polisen.se/"), new Cookie("PHPSESSID", sessionCookie));
-
-                using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
+                sessionKey = keyInfo.Key;
+                var tmpUrl = keyInfo.AvailableAssignmentsUrl;
+            }
+            else
+            {
+                byte[] cookieData;
+                if (HttpContext.Session.TryGetValue("Session-Cookie", out cookieData))
                 {
-                    AssignmentDetailHelper.SubmitInterestOfAssignment(handler, assignment, comment, password);
-
-                    return this.Ok();
+                    sessionKey = System.Text.Encoding.UTF8.GetString(cookieData);
+                }
+                else
+                {
+                    return this.Unauthorized();
                 }
             }
 
-            return this.Unauthorized();
-            //return this.Redirect(_appSettings.WebSiteUrl + "/login?page=assignment&key=" + key);
+            var cookieContainer = new CookieContainer();
+            cookieContainer.Add(new System.Uri("http://volontar.polisen.se/"), new Cookie("PHPSESSID", sessionKey));
+
+            using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
+            {
+                AssignmentDetailHelper.SubmitInterestOfAssignment(handler, assignment, comment, password);
+
+                return this.Ok();
+            }
         }
     }
 }

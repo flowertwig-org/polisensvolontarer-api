@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using Api.Contracts;
+using Api.Helpers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers
@@ -9,39 +10,28 @@ namespace Api.Controllers
     {
         // GET api/values
         [HttpGet]
-        public bool Get()
+        public int Get(string cookieFailKey = null)
         {
             this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
 
-            // TODO: 1. Sanity checking
-            // TODO: 2. Validate current session
-            // TODO: 3. If valid, update session (TO keep alive)
-            // TODO: 4. Return current state
-            // TODO: 1. Sanity checking
-            // TODO: 2. Validate login
-            var list = new List<Assignment>();
             try
             {
-                byte[] data;
-                if (HttpContext.Session.TryGetValue("AvailableAssignments", out data))
+                var keyInfo = new CookieFailKeyInfo(cookieFailKey);
+
+                var list = AvailableAssignmentsHelper.GetAvailableAssignments(HttpContext, keyInfo);
+                if (list.Count == 0)
                 {
-                    var content = System.Text.Encoding.UTF8.GetString(data);
-                    var jArray = Newtonsoft.Json.JsonConvert.DeserializeObject(content) as Newtonsoft.Json.Linq.JArray;
-                    var array = jArray.ToObject<Assignment[]>();
-                    if (array != null)
-                    {
-                        list.AddRange(array);
-                    }
+                    return 1;
+                }
+                else
+                {
+                    return 2;
                 }
             }
             catch (System.Exception)
             {
-                // TODO: Do error handling
-                return false;
+                return -2;
             }
-
-            // TODO: 3. Return available assignmets
-            return list.Count > 0;
         }
     }
 }

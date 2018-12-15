@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using Api.Contracts;
 using Microsoft.AspNetCore.Http;
 
@@ -135,7 +137,7 @@ namespace Api.Helpers
             return filterSettings;
         }
 
-        public static List<Assignment> AdvancedFilerItems(List<Assignment> items, AvailableAssignmentFilterSettings filterSettings, HttpContext httpContext, AppSettings appSettings, out int skipCount)
+        public static List<Assignment> AdvancedFilerItems(List<Assignment> items, AvailableAssignmentFilterSettings filterSettings, HttpContext httpContext, CookieFailKeyInfo cookieKeyInfo, AppSettings appSettings, out int skipCount)
         {
             skipCount = 0;
             List<Assignment> filteredItems = new List<Assignment>(items);
@@ -169,7 +171,7 @@ namespace Api.Helpers
                             }
                         }
 
-                        var details = AssignmentDetailHelper.GetAssignmentDetail(httpContext, appSettings, assignment);
+                        var details = AssignmentDetailHelper.GetAssignmentDetail(httpContext, cookieKeyInfo, appSettings, assignment);
                         var shouldBeKept = true;
 
                         if (isFilterOnlyAssignmentsThatCanBeBooked)
@@ -195,7 +197,8 @@ namespace Api.Helpers
                             }
                             skipCount++;
                         }
-                        else {
+                        else
+                        {
                             indexesToRemove.Add(assignmentIndex);
                             skipCount++;
                         }
@@ -368,7 +371,7 @@ namespace Api.Helpers
         }
 
 
-        public static List<Assignment> GetAvailableAssignments(HttpContext httpContext)
+        private static List<Assignment> GetAvailableAssignmentsFromSession(HttpContext httpContext)
         {
             var list = new List<Assignment>();
             try
@@ -386,6 +389,64 @@ namespace Api.Helpers
                 }
             }
             catch (System.Exception)
+            {
+                // TODO: Do error handling
+            }
+
+            return list;
+        }
+
+        public static List<Assignment> GetAvailableAssignments(HttpContext httpContext, CookieFailKeyInfo cookieFailKeyInfo)
+        {
+            var list = new List<Assignment>();
+            try
+            {
+                if (!cookieFailKeyInfo.IsVaild)
+                {
+                    list = GetAvailableAssignmentsFromSession(httpContext);
+                }
+
+                if (list.Count == 0)
+                {
+                    list = GetAvailableAssignmentsFromPortal(cookieFailKeyInfo);
+                }
+            }
+            catch (System.Exception)
+            {
+                // TODO: Do error handling
+            }
+
+            return list;
+        }
+
+        private static List<Assignment> GetAvailableAssignmentsFromPortal(CookieFailKeyInfo cookieFailKeyInfo)
+        {
+            var list = new List<Assignment>();
+            try
+            {
+                var cookieContainer = new CookieContainer();
+                cookieContainer.Add(new Uri("http://volontar.polisen.se/"), new Cookie("PHPSESSID", cookieFailKeyInfo.Key));
+                using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
+                {
+                    HttpClient client = new HttpClient(handler);
+                    using (var response = client.GetAsync("http://volontar.polisen.se/" + cookieFailKeyInfo.AvailableAssignmentsUrl).Result)
+                    {
+                        using (var responseContent = response.Content)
+                        {
+                            var content = responseContent.ReadAsStringAsync().Result;
+
+                            if (!LoginHelper.IsLoginContent(content))
+                            {
+                                return list;
+                            }
+
+                            var availableAssignments = new AvailableAssignmentsInfo(content);
+                            list.AddRange(availableAssignments.Assignments);
+                        }
+                    }
+                }
+            }
+            catch (Exception)
             {
                 // TODO: Do error handling
             }

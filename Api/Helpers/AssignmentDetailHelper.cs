@@ -1,9 +1,5 @@
 ﻿using System.Collections.Generic;
-using Microsoft.AspNetCore.Mvc;
 using Api.Contracts;
-using System.Linq;
-using Api.Helpers;
-using Microsoft.Extensions.Options;
 using System.Net.Http;
 using System.Net;
 using System;
@@ -14,24 +10,32 @@ namespace Api.Helpers
 {
     public class AssignmentDetailHelper
     {
-        public static AssignmentDetail GetAssignmentDetail(HttpContext httpContext, AppSettings appSettings, Assignment item)
+        public static AssignmentDetail GetAssignmentDetail(HttpContext httpContext, CookieFailKeyInfo cookieFailKeyInfo, AppSettings appSettings, Assignment item)
         {
-            var cookieContainer = new CookieContainer();
-
-            byte[] cookieData;
-            if (httpContext.Session.TryGetValue("Session-Cookie", out cookieData))
+            string key = "";
+            if (cookieFailKeyInfo.IsVaild)
             {
-                var sessionCookie = System.Text.Encoding.UTF8.GetString(cookieData);
-                cookieContainer.Add(new Uri("http://volontar.polisen.se/"), new Cookie("PHPSESSID", sessionCookie));
-
-                using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
+                key = cookieFailKeyInfo.Key;
+                var tmpUrl = cookieFailKeyInfo.AvailableAssignmentsUrl;
+            }
+            else
+            {
+                byte[] cookieData;
+                if (httpContext.Session.TryGetValue("Session-Cookie", out cookieData))
                 {
-                    var assignment = GetAssignmentDetailFromUrl(handler, item, appSettings.WebSiteUrl);
-
-                    return assignment;
+                    key = System.Text.Encoding.UTF8.GetString(cookieData);
                 }
             }
-            return null;
+
+            var cookieContainer = new CookieContainer();
+            cookieContainer.Add(new Uri("http://volontar.polisen.se/"), new Cookie("PHPSESSID", key));
+
+            using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
+            {
+                var assignment = GetAssignmentDetailFromUrl(handler, item, appSettings.WebSiteUrl);
+
+                return assignment;
+            }
         }
 
         public static AssignmentDetail GetAssignmentDetailFromUrl(HttpClientHandler handler, Assignment baseAssignment, string webSiteUrl)
@@ -99,9 +103,11 @@ namespace Api.Helpers
 
                         string postFormPattern = "<form action=\"(?<formUrl>[^\"]+)\"";
                         var postFormMatch = Regex.Match(pageContent, postFormPattern);
-                        if (postFormMatch.Success) {
+                        if (postFormMatch.Success)
+                        {
                             var postFormGroup = postFormMatch.Groups["formUrl"];
-                            if (postFormGroup.Success) {
+                            if (postFormGroup.Success)
+                            {
                                 postFormUrl = postFormGroup.Value.Replace("../", "");
                             }
                         }
@@ -116,7 +122,8 @@ namespace Api.Helpers
                             }
 
                             var group = match.Groups["content"];
-                            if (!group.Success) {
+                            if (!group.Success)
+                            {
                                 continue;
                             }
 
@@ -130,12 +137,14 @@ namespace Api.Helpers
                                 .Replace("</font>", "")
                                 .Replace("</p>", "<br>")
                                 .Replace("<br>&nbsp;<br>", "<br>");
-                            
-                            if (value.IndexOf("Kategori:", System.StringComparison.Ordinal) != -1) {
+
+                            if (value.IndexOf("Kategori:", System.StringComparison.Ordinal) != -1)
+                            {
                                 continue;
                             }
 
-                            if (value.IndexOf("Uppdragsbeskrivning:", System.StringComparison.Ordinal) != -1) {
+                            if (value.IndexOf("Uppdragsbeskrivning:", System.StringComparison.Ordinal) != -1)
+                            {
                                 description = value.Replace("Uppdragsbeskrivning:", "")
                                                    .Replace("<p style=\"margin: 0cm 0cm 0.0001pt\">", "");
 
@@ -154,7 +163,8 @@ namespace Api.Helpers
                                 continue;
                             }
 
-                            if (value.IndexOf("Samordnas av:", System.StringComparison.Ordinal) != -1) {
+                            if (value.IndexOf("Samordnas av:", System.StringComparison.Ordinal) != -1)
+                            {
                                 // TODO: Fixa denna
                                 contactInfo += value.Replace("Samordnas av:", "<b>Samordnas av:</b>");
 
@@ -170,7 +180,8 @@ namespace Api.Helpers
                                                                    .Replace("<td class=\"arial13bold O1621a455\" valign=\"top\">", "")
                                                                    .Replace("<td class=\"NORMAL O5d0fe1aa\" valign=\"top\">", "");
                                 index = value.IndexOf('<');
-                                if (index > 0){
+                                if (index > 0)
+                                {
                                     value = value.Substring(0, index);
                                 }
                                 contactInfo += value;
@@ -191,10 +202,12 @@ namespace Api.Helpers
                                 lastRequestDate = lastRequestDate.Replace("<br>", "");
 
                                 // 20181030
-                                if (lastRequestDate.Length == 8) {
-                                    var temp = lastRequestDate.Substring(0,4) + "-" + lastRequestDate.Substring(4, 2) + "-" + lastRequestDate.Substring(6,2);
+                                if (lastRequestDate.Length == 8)
+                                {
+                                    var temp = lastRequestDate.Substring(0, 4) + "-" + lastRequestDate.Substring(4, 2) + "-" + lastRequestDate.Substring(6, 2);
                                     DateTime test;
-                                    if (DateTime.TryParse(temp, out test)) {
+                                    if (DateTime.TryParse(temp, out test))
+                                    {
                                         lastRequestDate = temp;
                                     }
                                 }
@@ -206,8 +219,9 @@ namespace Api.Helpers
                                 // TODO: Fixa denna
                                 meetupTimeAndPlace = value.Replace("Tid och plats uts&auml;ttning:", "");
                                 meetupTimeAndPlace = meetupTimeAndPlace.Replace("<br>", "");
-                                var meetupPair = meetupTimeAndPlace.Split(new char[] {'|'});
-                                if (meetupPair.Length == 2) {
+                                var meetupPair = meetupTimeAndPlace.Split(new char[] { '|' });
+                                if (meetupPair.Length == 2)
+                                {
                                     meetupTime = meetupPair[0].Trim();
                                     meetupPlace = meetupPair[1].Trim();
                                 }
@@ -227,7 +241,8 @@ namespace Api.Helpers
                                                                    .Replace("\r\n", "")
                                                                    .Replace("<td class=\"arial13bold Ofc401641\" valign=\"top\">", "");
                                 index = value.IndexOf("<", System.StringComparison.Ordinal);
-                                if (index != -1) {
+                                if (index != -1)
+                                {
                                     currentNumberOfPeople = value.Substring(0, index);
                                 }
                                 continue;
@@ -250,14 +265,16 @@ namespace Api.Helpers
                         var startAndEndTime = time.Replace(":", "")
                                                   .Replace(".", "")
                                                   .Replace("Kl", "")
-                                                  .Split(new char[] {'-',' '}, System.StringSplitOptions.RemoveEmptyEntries);
-                        if (startAndEndTime.Length == 2) {
+                                                  .Split(new char[] { '-', ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
+                        if (startAndEndTime.Length == 2)
+                        {
                             startTime = "T" + startAndEndTime[0];
                             endTime = "T" + startAndEndTime[1];
                         }
 
                         var location = "";
-                        if (meetupPlace != null) {
+                        if (meetupPlace != null)
+                        {
                             location = $"&location={WebUtility.UrlEncode(meetupPlace)}";
                         }
 
