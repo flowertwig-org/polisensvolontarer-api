@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using Api.Contracts;
@@ -17,23 +15,6 @@ namespace Api.Controllers
         public AssignmentReportController(IOptions<AppSettings> appSettings)
         {
             _appSettings = appSettings.Value;
-        }
-
-        // GET api/Assignment/{id}
-        [HttpGet]
-        //[ResponseCache(VaryByQueryKeys = new[] { "key" }, Duration = 60)]
-        public JsonResult Get(string key)
-        {
-            try
-            {
-                this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
-
-                return Json(null);
-            }
-            catch (System.Exception ex)
-            {
-                return Json(new Assignment { Name = ex.Message });
-            }
         }
 
         public class ReportResult
@@ -54,64 +35,73 @@ namespace Api.Controllers
 
             var keyInfo = new CookieFailKeyInfo(cookieFailKey);
 
+            var navigationInfo = NavigationHelper.GetNavigation(HttpContext, keyInfo);
+
+            string key = "";
+            if (keyInfo.IsVaild)
+            {
+                key = keyInfo.Key;
+                var tmpUrl = keyInfo.AvailableAssignmentsUrl;
+            }
+            else
+            {
+                byte[] cookieData;
+                if (HttpContext.Session.TryGetValue("Session-Cookie", out cookieData))
+                {
+                    key = System.Text.Encoding.UTF8.GetString(cookieData);
+                }
+                else
+                {
+                    return reportResult;
+                }
+            }
+
             var cookieContainer = new CookieContainer();
 
-            byte[] cookieData;
-            if (HttpContext.Session.TryGetValue("Session-Cookie", out cookieData))
+            cookieContainer.Add(new Uri("http://volontar.polisen.se/"), new Cookie("PHPSESSID", key));
+
+            using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
             {
-                var sessionCookie = System.Text.Encoding.UTF8.GetString(cookieData);
-                cookieContainer.Add(new Uri("http://volontar.polisen.se/"), new Cookie("PHPSESSID", sessionCookie));
-
-                using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
+                if (navigationInfo != null)
                 {
-                    byte[] data;
-                    if (this.HttpContext.Session.TryGetValue("MainNavigation", out data))
+                    var reportUrl = MyAssignmentReportHelper.GetReportUrl(handler, navigationInfo, areaIndex);
+                    if (string.IsNullOrEmpty(reportUrl))
                     {
-                        var content = System.Text.Encoding.UTF8.GetString(data);
-                        var jArray = Newtonsoft.Json.JsonConvert.DeserializeObject(content) as Newtonsoft.Json.Linq.JObject;
-                        var navigationInfo = jArray.ToObject<NavigationInfo>();
-                        if (navigationInfo != null)
-                        {
-                            var reportUrl = MyAssignmentReportHelper.GetReportUrl(handler, navigationInfo, areaIndex);
-                            if (string.IsNullOrEmpty(reportUrl))
-                            {
-                                return reportResult;
-                            }
-
-                            var reportInfo = MyAssignmentReportHelper.GetReportActionUrlAndUserName(handler, reportUrl);
-                            var actionUrl = reportInfo.ActionUrl;
-                            if (string.IsNullOrEmpty(actionUrl))
-                            {
-                                return reportResult;
-                            }
-
-                            var name = "";
-                            var email = "";
-                            if (!anonymous)
-                            {
-                                name = reportInfo.UserFullName ?? "";
-                                email = MyAssignmentReportHelper.GetUserEmail(HttpContext, keyInfo, _appSettings) ?? "";
-                            }
-                            else
-                            {
-                                name = "Användaren har valt att vara anonym";
-                            }
-
-                            //reportResult.Name = name;
-                            //reportResult.Email = email;
-
-                            var result = MyAssignmentReportHelper.PostReport(
-                                handler, actionUrl,
-                                name, email,
-                                assignmentOrDate,
-                                feedback1, feedback2, feedback3
-                            );
-
-                            reportResult.IsSuccess = result;
-
-                            return reportResult;
-                        }
+                        return reportResult;
                     }
+
+                    var reportInfo = MyAssignmentReportHelper.GetReportActionUrlAndUserName(handler, reportUrl);
+                    var actionUrl = reportInfo.ActionUrl;
+                    if (string.IsNullOrEmpty(actionUrl))
+                    {
+                        return reportResult;
+                    }
+
+                    var name = "";
+                    var email = "";
+                    if (!anonymous)
+                    {
+                        name = reportInfo.UserFullName ?? "";
+                        email = MyAssignmentReportHelper.GetUserEmail(HttpContext, keyInfo, _appSettings) ?? "";
+                    }
+                    else
+                    {
+                        name = "Användaren har valt att vara anonym";
+                    }
+
+                    //reportResult.Name = name;
+                    //reportResult.Email = email;
+
+                    var result = MyAssignmentReportHelper.PostReport(
+                        handler, actionUrl,
+                        name, email,
+                        assignmentOrDate,
+                        feedback1, feedback2, feedback3
+                    );
+
+                    reportResult.IsSuccess = result;
+
+                    return reportResult;
                 }
             }
 
