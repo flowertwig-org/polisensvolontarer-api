@@ -122,9 +122,9 @@ namespace Api.Helpers
             return info;
         }
 
-        public static string GetUserEmail(HttpContext httpContext, AppSettings appSettings)
+        public static string GetUserEmail(HttpContext httpContext, CookieFailKeyInfo keyInfo, AppSettings appSettings)
         {
-            var assignments = AvailableAssignmentsHelper.GetAvailableAssignments(httpContext);
+            var assignments = AvailableAssignmentsHelper.GetAvailableAssignments(httpContext, null);
 
             for (int assignmentIndex = 0; assignmentIndex < assignments.Count; assignmentIndex++)
             {
@@ -132,7 +132,7 @@ namespace Api.Helpers
 
                 if (currentAssignment != null)
                 {
-                    var assignmentDetail = AssignmentDetailHelper.GetAssignmentDetail(httpContext, appSettings, currentAssignment);
+                    var assignmentDetail = AssignmentDetailHelper.GetAssignmentDetail(httpContext, keyInfo, appSettings, currentAssignment);
                     if (assignmentDetail != null)
                     {
                         var matchingPairs = assignmentDetail.InterestsValues.Where(pair => pair.Key == "login").ToList();

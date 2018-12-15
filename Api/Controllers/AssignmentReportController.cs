@@ -48,9 +48,11 @@ namespace Api.Controllers
         public ReportResult Post(
             [FromForm]bool anonymous,
             [FromForm]string assignmentOrDate, [FromForm]int areaIndex,
-            [FromForm]string feedback1, [FromForm]string feedback2, [FromForm]string feedback3)
+            [FromForm]string feedback1, [FromForm]string feedback2, [FromForm]string feedback3, string cookieFailKey = null)
         {
             ReportResult reportResult = new ReportResult();
+
+            var keyInfo = new CookieFailKeyInfo(cookieFailKey);
 
             var cookieContainer = new CookieContainer();
 
@@ -88,7 +90,7 @@ namespace Api.Controllers
                             if (!anonymous)
                             {
                                 name = reportInfo.UserFullName ?? "";
-                                email = MyAssignmentReportHelper.GetUserEmail(HttpContext, _appSettings) ?? "";
+                                email = MyAssignmentReportHelper.GetUserEmail(HttpContext, keyInfo, _appSettings) ?? "";
                             }
                             else
                             {

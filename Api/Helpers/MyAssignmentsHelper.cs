@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using Api.Contracts;
+using Microsoft.AspNetCore.Http;
 
 namespace Api.Helpers
 {
@@ -57,7 +59,7 @@ namespace Api.Helpers
                             Interests = interests != null ? interests.Assignments : new List<Assignment>(),
                             Confirms = confirms != null ? confirms.Assignments : new List<Assignment>(),
                             Reservations = reservations != null ? reservations.Assignments : new List<Assignment>(),
-                            History = history != null ? history.Assignments.Where(a=> a.Date >= lastWeek).OrderByDescending(a => a.Date).ToList() : new List<AssignmentHistory>()
+                            History = history != null ? history.Assignments.Where(a => a.Date >= lastWeek).OrderByDescending(a => a.Date).ToList() : new List<AssignmentHistory>()
                         };
                     }
                 }
@@ -65,6 +67,39 @@ namespace Api.Helpers
             catch (System.Exception)
             {
                 return new MyAssignmentsInfo { };
+            }
+        }
+
+        public static MyAssignmentsInfo GetMyAssignments(HttpContext httpContext, CookieFailKeyInfo cookieFailKeyInfo)
+        {
+            string key = "";
+            if (cookieFailKeyInfo.IsVaild)
+            {
+                key = cookieFailKeyInfo.Key;
+                var tmpUrl = cookieFailKeyInfo.AvailableAssignmentsUrl;
+            }
+            else
+            {
+                byte[] cookieData;
+                if (httpContext.Session.TryGetValue("Session-Cookie", out cookieData))
+                {
+                    key = System.Text.Encoding.UTF8.GetString(cookieData);
+                }
+            }
+
+            var navigationInfo = NavigationHelper.GetNavigation(httpContext, cookieFailKeyInfo);
+            if (navigationInfo == null)
+            {
+                return new MyAssignmentsInfo { IsLoggedIn = false };
+            }
+
+            var cookieContainer = new CookieContainer();
+
+            cookieContainer.Add(new Uri("http://volontar.polisen.se/"), new Cookie("PHPSESSID", key));
+
+            using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
+            {
+                return GetMyAssignmentsInfoFromUrl(handler, navigationInfo);
             }
         }
     }

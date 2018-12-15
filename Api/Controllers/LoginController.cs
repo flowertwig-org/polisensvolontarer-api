@@ -19,41 +19,33 @@ namespace Api.Controllers
 
         // GET api/values
         [HttpGet]
-        public bool Get()
+        public bool Get([FromQuery]string cookieFailKey)
         {
             this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
 
             try
             {
-                byte[] data;
-                if (HttpContext.Session.TryGetValue("Session-Cookie", out data)) {
-                    string content = System.Text.Encoding.UTF8.GetString(data);
-                    return (!string.IsNullOrEmpty(content));
-                }
-                // TODO: 1. Sanity checking
-                // TODO: 2. Return login status
-                // TODO: 3. If no valid login, return false
-                // TODO: 4a. Add session info
-                // TODO: 4b. return true;
+                var keyInfo = new CookieFailKeyInfo(cookieFailKey);
 
-                return false;
+                var list = AvailableAssignmentsHelper.GetAvailableAssignments(HttpContext, keyInfo);
+                return list.Count > 0;
             }
             catch (System.Exception)
             {
                 return false;
             }
-
         }
 
         // POST api/values
         [HttpPost]
-        public IActionResult Post([FromForm]string username, [FromForm]string password, [FromForm]string page, [FromForm]string query)
+        public IActionResult Post([FromForm]string username, [FromForm]string password, [FromForm]string page, [FromForm]string query, [FromForm]bool failedCookieCheck)
         {
             this.Response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0");
 
             var successfullLogin = false;
             string redirectUrl = null;
             var isSecurePassword = false;
+            string cookieFailKey = "";
 
             var cookieContainer = new CookieContainer();
             using (var handler = new HttpClientHandler() { CookieContainer = cookieContainer })
@@ -82,6 +74,10 @@ namespace Api.Controllers
                         if (cookie.Name == "PHPSESSID")
                         {
                             HttpContext.Session.Set("Session-Cookie", System.Text.Encoding.UTF8.GetBytes(cookie.Value));
+                            if (failedCookieCheck)
+                            {
+                                cookieFailKey = CookieFailKeyInfo.ToKey(cookie.Value, info.MainNavigation.AvailableAssignmentsUrl);
+                            }
                         }
                     }
 
@@ -141,7 +137,8 @@ namespace Api.Controllers
             {
                 IsSuccess = successfullLogin,
                 IsWeakPassword = !isSecurePassword,
-                RedirectUrl = redirectUrl
+                RedirectUrl = redirectUrl,
+                CookieFailKey = cookieFailKey
             });
         }
     }
