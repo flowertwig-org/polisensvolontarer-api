@@ -269,7 +269,15 @@ namespace Api.Helpers
                         if (startAndEndTime.Length == 2)
                         {
                             startTime = "T" + startAndEndTime[0];
+                            if (startAndEndTime[0].Length == 2)
+                            {
+                                startTime = "T" + startAndEndTime[0] + "00";
+                            }
                             endTime = "T" + startAndEndTime[1];
+                            if (startAndEndTime[1].Length == 2)
+                            {
+                                endTime = "T" + startAndEndTime[1] + "00";
+                            }
                         }
 
                         var location = "";
